@@ -1,0 +1,12 @@
+# 忽略 PyCharm / IntelliJ 配置
+.idea/
+
+# 忽略 Python 缓存
+__pycache__/
+*.pyc
+
+# 忽略媒体文件（上传的图片）
+media/
+
+# 其他不想提交的文件或文件夹
+*.log

@@ -1,0 +1,101 @@
+/* Shared styles for Login and Register Forms */
+.auth-form {
+  width: 400px;
+  padding: 40px;
+  background: rgba(12, 24, 46, 0.6); /* Semi-transparent background */
+  border: 1px solid rgba(0, 191, 255, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px); /* Glass effect */
+  -webkit-backdrop-filter: blur(10px);
+  color: #c9d1d9;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  text-align: center;
+}
+
+.auth-form h2 {
+  font-size: 2.5rem;
+  font-weight: 600;
+  color: #58a6ff;
+  text-shadow: 0 0 10px rgba(88, 166, 255, 0.5);
+  margin-bottom: 20px;
+  letter-spacing: 2px;
+}
+
+.input-group {
+  position: relative;
+  margin-bottom: 15px;
+}
+
+.auth-form input {
+  width: 100%;
+  padding: 12px 15px;
+  background: rgba(22, 27, 34, 0.7);
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  color: #c9d1d9;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  box-sizing: border-box; /* Add this */
+}
+
+.auth-form input:focus {
+  outline: none;
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+}
+
+.auth-form button {
+  width: 100%;
+  padding: 12px 15px;
+  background: linear-gradient(90deg, #58a6ff, #007bff);
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 15px rgba(88, 166, 255, 0.4);
+}
+
+.auth-form button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 25px rgba(88, 166, 255, 0.7);
+}
+
+.switch-form {
+  margin-top: 15px;
+  font-size: 0.9rem;
+}
+
+.switch-form a {
+  color: #58a6ff;
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.switch-form a:hover {
+  text-decoration: underline;
+}
+
+.form-message {
+  padding: 10px;
+  border-radius: 6px;
+  margin-top: 10px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.form-message.error {
+  background-color: rgba(248, 81, 73, 0.2);
+  color: #f85149;
+}
+
+.form-message.success {
+  background-color: rgba(63, 185, 80, 0.2);
+  color: #3fb950;
+} 
