@@ -1,0 +1,38 @@
+# This file may be used to create an environment using:
+# $ conda create --name <env> --file <this file>
+# platform: win-64
+asgiref=3.9.1=pypi_0
+bzip2=1.0.8=h2bbff1b_6
+ca-certificates=2025.2.25=haa95532_0
+django=5.2.4=pypi_0
+django-cors-headers=4.7.0=pypi_0
+djangorestframework=3.16.0=pypi_0
+et-xmlfile=2.0.0=pypi_0
+expat=2.7.1=h8ddb27b_0
+libffi=3.4.4=hd77b12b_1
+mysqlclient=2.2.7=pypi_0
+numpy=2.2.6=pypi_0
+openpyxl=3.1.5=pypi_0
+openssl=3.0.16=h3f729d1_0
+pandas=2.3.1=pypi_0
+pillow=11.3.0=pypi_0
+pip=25.1=pyhc872135_2
+python=3.10.18=h981015d_0
+python-dateutil=2.9.0.post0=pypi_0
+pytz=2025.2=pypi_0
+rarfile=4.2=pypi_0
+setuptools=78.1.1=py310haa95532_0
+six=1.17.0=pypi_0
+sqlite=3.45.3=h2bbff1b_0
+sqlparse=0.5.3=pypi_0
+tk=8.6.14=h5e9d12e_1
+typing-extensions=4.14.1=pypi_0
+typing_extensions=4.12.2=py310haa95532_0
+tzdata=2025.2=pypi_0
+ucrt=10.0.22621.0=haa95532_0
+vc=14.3=h2df5915_10
+vc14_runtime=14.44.35208=h4927774_10
+vs2015_runtime=14.44.35208=ha6b5a95_10
+wheel=0.45.1=py310haa95532_0
+xz=5.6.4=h4754444_1
+zlib=1.2.13=h8cc25b3_1
