@@ -21,7 +21,8 @@ watch(
   () => route.path,
   (val) => {
     if (val.includes('dashboard')) activeMenu.value = 'dashboard'
-    else if (val.includes('map')) activeMenu.value = 'map'
+    else if (val.includes('showcase')) activeMenu.value = 'showcase'
+    else if (val.includes('navigation')) activeMenu.value = 'navigation'
     else if (val.includes('data')) activeMenu.value = 'data'
     else if (val.includes('visit')) activeMenu.value = 'visit'
     else if (val.includes('edit')) activeMenu.value = 'edit'

@@ -11,16 +11,17 @@ class Shop(models.Model):
         ('D', 'Level D'),
     ]
 
-    name = models.CharField(max_length=100)
-    country = models.CharField(max_length=100)
-    city = models.CharField(max_length=100)
+    name = models.CharField(max_length=255)
+    country = models.CharField(max_length=255)
+    city = models.CharField(max_length=255)
     lat = models.FloatField()
     lon = models.FloatField()
-    address = models.CharField(max_length=100)
-    phone = models.CharField(max_length=100)
-    email = models.CharField(max_length=100)
+    address = models.CharField(max_length=255)
+    phone = models.CharField(max_length=255)
+    email = models.CharField(max_length=255)
+    website = models.CharField(max_length=255, null=True)
     level = models.CharField(max_length=1, choices=LEVEL_CHOICES)
-    tags = models.CharField(max_length=200)
+    tags = models.CharField(max_length=255)
     image = models.ImageField(upload_to='shop_images/', null=True, blank=True)
     visited = models.BooleanField(default=False)
 

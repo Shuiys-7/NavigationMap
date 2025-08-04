@@ -1,4 +1,4 @@
-<!-- 侧边栏组件，包含首页、地图、我的菜单 -->
+<!-- 侧边栏组件，包含首页、展示、地图、数据、拜访、修改、我的菜单 -->
 <template>
   <div class="sidebar">
     <div
@@ -19,7 +19,8 @@ const props = defineProps({
 })
 const menus = [
   { key: 'dashboard', label: '首页' },
-  { key: 'map', label: '地图' },
+  { key: 'showcase', label: '展示' },
+  { key: 'navigation', label: '地图' },
   { key: 'data', label: '数据' },
   { key: 'visit', label: '拜访' },
   { key: 'edit', label: '修改' },

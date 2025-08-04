@@ -23,5 +23,4 @@ urlpatterns = [
     path('api/user-visited-shops', shop_views.user_visited_shops),
     path('api/update-shop', shop_views.update_shop),
 
-
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
