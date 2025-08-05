@@ -89,7 +89,9 @@ def import_data(request):
             'address': 'address',
             'phone': 'phone',
             'email': 'email',
+            'level': 'level',
             'image_path': 'image',
+            'website': 'website',
         }
 
         shops_to_create = []
@@ -100,7 +102,8 @@ def import_data(request):
                 if pd.notna(row.get(csv_col)):
                     shop_data[model_field] = row[csv_col]
 
-            shop_data.setdefault('level', 'D')
+            # shop_data.setdefault('level', 'D')
+            shop_data.setdefault('image', '')
             shop_data.setdefault('tags', '')
             shop_data.setdefault('visited', False)
 
@@ -110,6 +113,7 @@ def import_data(request):
         return Response({'status': '导入成功', 'rows': len(shops_to_create)})
 
     except Exception as e:
+        print(e)
         return Response({'error': f'导入失败: {str(e)}'}, status=500)
 
 

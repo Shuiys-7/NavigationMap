@@ -19,7 +19,7 @@ class Shop(models.Model):
     address = models.CharField(max_length=255)
     phone = models.CharField(max_length=255)
     email = models.CharField(max_length=255)
-    website = models.CharField(max_length=255, null=True)
+    website = models.CharField(max_length=500, null=True)
     level = models.CharField(max_length=1, choices=LEVEL_CHOICES)
     tags = models.CharField(max_length=255)
     image = models.ImageField(upload_to='shop_images/', null=True, blank=True)

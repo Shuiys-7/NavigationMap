@@ -81,6 +81,7 @@
           <p><strong>国家：</strong>{{ selectedPoint.country }}</p>
           <p><strong>城市：</strong>{{ selectedPoint.city }}</p>
           <p><strong>评级：</strong>{{ selectedPoint.level }}</p>
+          <p><strong>网址：</strong>{{ selectedPoint.website }}</p>
           <p><strong>标签：</strong>{{ selectedPoint.tags }}</p>
           <p><strong>状态：</strong>{{ selectedPoint.visited }}</p>
         </div>
@@ -142,6 +143,7 @@ async function fetchMapData() {
     address: item.address,
     country: item.country,
     city: item.city,
+    website: item.website,
     image: item.image
       ? (item.image.startsWith('/media/shop_images/')
           ? item.image
@@ -442,7 +444,7 @@ function loadVisibleMarkers() {
         <h4>${point.name}</h4>
         <p><strong>地址：</strong>${point.address || '无'}</p>
         <p><strong>状态：</strong>${point.visited}</p>
-        <button onclick="window.showPointDetailsFromPopup('${point.name}')" style="margin-top: 8px; padding: 4px 8px; background: #1677ff; color: white; border: none; border-radius: 4px; cursor: pointer;">查看详情</button>
+         <button onclick="window.showPointDetailsFromPopup(&quot;${point.name}&quot;)" style="margin-top: 8px; padding: 4px 8px; background: #1677ff; color: white; border: none; border-radius: 4px; cursor: pointer;">查看详情</button>
       </div>
     `)
 
@@ -481,7 +483,7 @@ onMounted(async () => {
          zoomAnimation: true,
          markerZoomAnimation: true,
          fadeAnimation: true
-       }).setView([39.9042, 116.4074], 10)
+       }).setView([48.8566, 2.3522], 6)
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
@@ -499,7 +501,7 @@ onMounted(async () => {
          iconCreateFunction: function(cluster) {
            const count = cluster.getChildCount()
            let className = 'marker-cluster-'
-           
+
            if (count > 100) {
              className += 'large'
            } else if (count > 10) {
@@ -507,7 +509,7 @@ onMounted(async () => {
            } else {
              className += 'small'
            }
-           
+
            return L.divIcon({
              html: `<div><span>${count}</span></div>`,
              className: className,
@@ -530,14 +532,14 @@ onMounted(async () => {
            loadVisibleMarkers()
          }, 200)
        }
-       
+
               map.on('moveend', debouncedLoadMarkers)
        map.on('zoomend', () => {
          debouncedLoadMarkers()
          updateZoomHint()
        })
        map.on('viewreset', debouncedLoadMarkers)
-       
+
        updateZoomHint()
 
       window.showPointDetailsFromPopup = function(pointName) {

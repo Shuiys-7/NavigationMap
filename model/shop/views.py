@@ -55,7 +55,7 @@ def data_list(request):
     data = [ShopSerializer(obj).data for obj in qs]
 
     columns = ['id', 'name', 'country', 'city', 'lat', 'lon', 'address', 'phone', 'email', 'level', 'tags', 'image',
-               'visited']
+               'visited', 'website']
 
     # 新增：返回所有国家和城市的去重列表
     all_countries = sorted(list(models.Shop.objects.values_list('country', flat=True).distinct()))
