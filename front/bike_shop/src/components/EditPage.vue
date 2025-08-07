@@ -44,7 +44,7 @@
       <span>条</span>
       <button :disabled="page===1" @click="gotoPage(page-1)">上一页</button>
       <span>第</span>
-      <input v-model.number="page" style="width:48px;text-align:center;border-radius:6px;border:1.5px solid #b3d6ff;padding:4px 0;" @keyup.enter="gotoPage(page)" />
+      <input v-model.number="page" class="page-input" @keyup.enter="gotoPage(page)" />
       <span>/ {{ Math.max(1, Math.ceil(total / pageSize)) }} 页</span>
       <button :disabled="page===Math.max(1, Math.ceil(total / pageSize))" @click="gotoPage(page+1)">下一页</button>
       <span style="margin-left:16px;">共 {{ total }} 条</span>
@@ -452,5 +452,31 @@ onMounted(() => {
   width: 18px;
   height: 18px;
   margin-right: 2px;
+}
+
+@media (max-width: 800px) {
+  .edit-pagination {
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 0.95rem;
+    justify-content: center;
+    text-align: center;
+  }
+  .edit-pagination button,
+  .edit-pagination input{
+    font-size: 0.95rem;
+    padding: 6px 10px;
+  }
+  .edit-pagination input[type="number"] {
+    width: 60px;
+  }
+  .edit-pagination select{
+    font-size: 0.95rem;
+    padding: 6px 10px;
+    width: 70px;
+  }
+  .page-input{
+    width: 50px;
+  }
 }
 </style>

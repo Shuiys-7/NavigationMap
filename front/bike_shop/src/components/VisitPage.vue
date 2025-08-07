@@ -43,7 +43,7 @@
         <span>条</span>
         <button :disabled="page===1" @click="gotoPage(page-1)">上一页</button>
         <span>第</span>
-        <input v-model.number="page" style="width:48px;text-align:center;border-radius:6px;border:1.5px solid #b3d6ff;padding:4px 0;" @keyup.enter="gotoPage(page)" />
+        <input v-model.number="page" class="page-input" @keyup.enter="gotoPage(page)" />
         <span>/ {{ Math.max(1, Math.ceil(total / pageSize)) }} 页</span>
         <button :disabled="page===Math.max(1, Math.ceil(total / pageSize))" @click="gotoPage(page+1)">下一页</button>
         <span style="margin-left:16px;">共 {{ total }} 条</span>
@@ -355,6 +355,7 @@ async function confirmDelete() {
 .visit-table {
   width: 100%;
   max-width: 100%;
+  height: 100%;
   border-collapse: collapse;
   background: #fff;
   border-radius: 0;
@@ -733,6 +734,48 @@ async function confirmDelete() {
 .visit-pagination button:not(:disabled):hover {
   background: #1677ff;
   color: #fff;
+}
+@media (max-width: 800px) {
+  .visit-page-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(88,166,255,0.10);
+    padding: 36px 28px 28px 28px;
+    font-size: 1.1rem;
+    color: #222;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 18px;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    height: 100dvh;
+    box-sizing: border-box;
+  }
+  .visit-pagination {
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 0.95rem;
+    justify-content: center;
+    text-align: center;
+  }
+  .visit-pagination button,
+  .visit-pagination input{
+    font-size: 0.95rem;
+    padding: 6px 10px;
+  }
+  .visit-pagination input[type="number"] {
+    width: 60px;
+  }
+  .visit-pagination select{
+    font-size: 0.95rem;
+    padding: 6px 10px;
+    width: 70px;
+  }
+  .page-input{
+    width: 50px;
+  }
 }
 </style>
 

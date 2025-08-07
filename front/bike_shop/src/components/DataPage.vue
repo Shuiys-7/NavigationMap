@@ -654,4 +654,45 @@ export default {
   background: linear-gradient(90deg, #1677ff, #58a6ff);
   color: #fff;
 }
+@media (max-width: 768px) {
+  .data-search-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* 设置每个组件的默认宽度 */
+  .search-input,
+  .filter-select,
+  .search-btn{
+    width: 110px;
+    font-size: 0.9rem;
+    padding: 6px 6px;
+  }
+
+  .data-pagination {
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 0.95rem;
+    padding: 10px;
+    justify-content: center;
+    text-align: center;
+  }
+  .data-pagination button,
+  .data-pagination input{
+    font-size: 0.95rem;
+    padding: 6px 10px;
+  }
+  .data-pagination input[type="number"] {
+    width: 60px;
+  }
+  .data-pagination select{
+    font-size: 0.95rem;
+    padding: 6px 10px;
+    width: 70px;
+  }
+  .page-input{
+    width: 50px;
+  }
+}
 </style>

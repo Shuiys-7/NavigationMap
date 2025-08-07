@@ -322,7 +322,7 @@ async function uploadImage() {
   flex-direction: column;
   align-items: flex-start;
   gap: 10px;
-  min-width: 220px;
+  min-width: 150px;
   flex: 1;
   background: none;
 }

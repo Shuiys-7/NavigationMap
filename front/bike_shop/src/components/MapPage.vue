@@ -109,7 +109,7 @@
 
     <!-- 详情弹窗 -->
     <div class="point-panel" :class="{ 'point-panel-open': showPointPanel }">
-      <div class="point-panel-header">
+      <div class="point-panel-header" v-if="showPointPanel && selectedPoint.name">
         <h3>坐标点信息</h3>
         <button @click="closePointPanel" class="close-btn">×</button>
       </div>
@@ -911,6 +911,13 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+p {
+  color: #333;
+}
+label {
+  color: #333;
+}
+
 .showcase-page {
   width: 100%;
   height: 100%;
@@ -1331,7 +1338,7 @@ onBeforeUnmount(() => {
   align-items: center;
   padding: 12px 16px;
   border-bottom: 1px solid #e9ecef;
-  background: #52c41a;
+  background: #34a853;
   color: white;
   border-radius: 8px 8px 0 0;
 }
@@ -1603,6 +1610,7 @@ onBeforeUnmount(() => {
 
   .point-panel {
     max-width: 90vw;
+    background: #ffffff;
     right: 10px;
     left: 10px;
   }

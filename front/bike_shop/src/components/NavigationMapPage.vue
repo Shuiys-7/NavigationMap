@@ -69,13 +69,13 @@
     </div>
 
     <div class="point-panel" :class="{ 'point-panel-open': showPointPanel }">
-      <div class="point-panel-header">
+      <div class="point-panel-header" v-if="showPointPanel && selectedPoint.name">
         <h3>坐标点信息</h3>
         <button @click="closePointPanel" class="close-btn">×</button>
       </div>
       <div class="point-panel-content" v-if="showPointPanel && selectedPoint.name">
         <div class="point-details">
-          <h4>{{ selectedPoint.name }}</h4>
+          <h4>{{ selectedPoint.name }}</h4>·
           <p><strong>坐标：</strong>{{ selectedPoint.lat }}, {{ selectedPoint.lon }}</p>
           <p><strong>地址：</strong>{{ selectedPoint.address }}</p>
           <p><strong>国家：</strong>{{ selectedPoint.country }}</p>
@@ -592,6 +592,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+
 .navigation-map-page {
   width: 100%;
   height: 100%;
@@ -958,6 +959,7 @@ onBeforeUnmount(() => {
 .point-details p {
   margin: 8px 0;
   font-size: 14px;
+  color: #30363d;
   line-height: 1.5;
 }
 
