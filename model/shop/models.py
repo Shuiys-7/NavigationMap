@@ -40,3 +40,21 @@ class Visit(models.Model):
 
     def __str__(self):
         return f"{self.user.username} visited {self.shop.name} on {self.visit_time}"
+
+
+# class Tag(models.Model):
+#     name = models.CharField(max_length=255, unique=True)  # 加unique约束，避免重复标签
+#
+#     def __str__(self):
+#         return self.name
+#
+#
+# class ShopTag(models.Model):
+#     shop_id = models.ForeignKey(Shop, on_delete=models.CASCADE, related_name='shop_tags')
+#     tag_id = models.ForeignKey(Tag, on_delete=models.CASCADE, related_name='tagged_shops')
+#
+#     class Meta:
+#         unique_together = ('shop_id', 'tag_id')
+#
+#     def __str__(self):
+#         return f"{self.shop_id} has tag {self.tag_id}"

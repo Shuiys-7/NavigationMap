@@ -80,16 +80,16 @@
                 </ul>
               </span>
             </div>
-            <div class="detail-row upload-row">
-              <span class="detail-label">上传照片：</span>
-                  <span class="detail-value">
-                  <label class="file-label">
-                   <input type="file" accept="image/*" @change="onFileChange" class="dialog-input-file" />
-                     选择文件
-                    </label>
-                <span v-if="fileName" class="file-name" style="display:block;margin-top:6px;">已选：{{ fileName }}</span>
-                 </span>
-            </div>
+<!--            <div class="detail-row upload-row">-->
+<!--              <span class="detail-label">上传照片：</span>-->
+<!--                  <span class="detail-value">-->
+<!--                  <label class="file-label">-->
+<!--                   <input type="file" accept="image/*" @change="onFileChange" class="dialog-input-file" />-->
+<!--                     选择文件-->
+<!--                    </label>-->
+<!--                <span v-if="fileName" class="file-name" style="display:block;margin-top:6px;">已选：{{ fileName }}</span>-->
+<!--                 </span>-->
+<!--            </div>-->
             <div class="detail-row">
               <span class="detail-label">备注：</span>
               <span class="detail-value">

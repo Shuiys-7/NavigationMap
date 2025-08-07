@@ -60,7 +60,7 @@ def data_list(request):
     # 新增：返回所有国家和城市的去重列表
     all_countries = sorted(list(models.Shop.objects.values_list('country', flat=True).distinct()))
     all_cities = sorted(list(models.Shop.objects.values_list('city', flat=True).distinct()))
-
+    # print(data)
     return Response({
         'data': data,
         'columns': columns,

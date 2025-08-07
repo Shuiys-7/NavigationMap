@@ -74,6 +74,11 @@
                   <span v-if="String(detailRow[col]) === 'true'" class="visited-tag visited-true">已拜访</span>
                   <span v-else class="visited-tag visited-false">未拜访</span>
                 </template>
+                <template v-else-if="col === 'website' && detailRow[col]">
+                  <a :href="detailRow[col]" target="_blank" rel="noopener" class="website-link">
+                        {{ detailRow[col] }}
+                  </a>
+                </template>
                 <template v-else>
                   {{ detailRow[col] }}
                 </template>
@@ -262,7 +267,7 @@ export default {
   data() {
     return {
 
-      showColumns: ['id', 'name', 'country', 'city', 'lat', 'lon', 'address', 'phone', 'email', 'level', 'tags', 'image', 'visited'],
+      showColumns: ['id', 'name', 'country', 'city', 'lat', 'lon', 'address', 'phone', 'email', 'level', 'tags', 'image', 'visited','website'],
       columnLabels: {
         id: '编号',
         name: '店铺名称',
@@ -276,7 +281,8 @@ export default {
         level: '级别',
         tags: '标签',
         image: '首页图片',
-        visited: '是否拜访'
+        visited: '是否拜访',
+        website: '网址',
       }
     }
   }
