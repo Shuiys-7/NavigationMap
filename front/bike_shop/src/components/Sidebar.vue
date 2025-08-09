@@ -19,8 +19,8 @@ const props = defineProps({
 })
 const menus = [
   { key: 'dashboard', label: '首页' },
-  { key: 'showcase', label: '展示' },
-  { key: 'navigation', label: '地图' },
+  { key: 'showcase', label: '地图' },
+  // { key: 'navigation', label: '地图' },
   { key: 'data', label: '数据' },
   { key: 'visit', label: '拜访' },
   { key: 'edit', label: '修改' },
@@ -48,4 +48,4 @@ const menus = [
   background: #1677ff;
   color: #fff;
 }
-</style> 
+</style>

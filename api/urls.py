@@ -22,5 +22,10 @@ urlpatterns = [
     path('api/delete-visit', shop_views.delete_visit),
     path('api/user-visited-shops', shop_views.user_visited_shops),
     path('api/update-shop', shop_views.update_shop),
+    path('api/tag_list', shop_views.tag_list),
+    path('api/tag_add', shop_views.tag_add),
+    path('api/shop_create', shop_views.shop_create),
+    path('api/delete-shop', shop_views.delete_shop),
+    path('api/user-recent-activities', shop_views.user_recent_activities),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

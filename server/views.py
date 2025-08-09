@@ -191,3 +191,5 @@ def all_user(request):
 def all_visit(request):
     total_visits = Visit.objects.all().count()
     return Response({'total_visits': total_visits})
+
+

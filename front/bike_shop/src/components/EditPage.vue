@@ -1,13 +1,14 @@
 <template>
   <div class="edit-page">
-    <h2>修改页面
+    <div class="edit-header">
+      <h2>修改页面</h2>
       <button
         class="edit-shop-btn"
         :disabled="!selectedShop"
         :class="{active: selectedShop}"
         @click="onEditShopClick"
       >编辑商店</button>
-    </h2>
+    </div>
     <table class="visited-table">
       <thead>
         <tr>
@@ -28,7 +29,19 @@
           <td>{{ shop.address }}</td>
           <td>{{ shop.phone }}</td>
           <td>{{ shop.email }}</td>
-          <td>{{ shop.tags }}</td>
+          <td>
+            <div class="edit-tags">
+              <span v-for="(tag, index) in getTagsArray(shop.tags)" 
+                    :key="index"
+                    class="edit-tag">
+                <i class="fas fa-tag tag-icon-small"></i>
+                {{ tag }}
+              </span>
+              <span v-if="getTagsArray(shop.tags).length === 0" class="no-tags">
+                无标签
+              </span>
+            </div>
+          </td>
         </tr>
         <tr v-if="pagedVisitedShops.length === 0">
           <td colspan="7">暂无拜访过的商店</td>
@@ -78,7 +91,50 @@
               </label>
             </div>
           </div>
-          <div class="form-row"><label>标签：</label><input v-model="editForm.tags" class="beautify-input" /></div>
+          <div class="form-row tag-edit-row">
+            <label>标签：</label>
+            <div class="tag-edit-container">
+              <div class="current-tags">
+                <div v-for="(tag, index) in currentTags" :key="index" class="edit-tag editable">
+                  <i class="fas fa-tag tag-icon-small"></i>
+                  <span>{{ tag }}</span>
+                  <i class="fas fa-times remove-tag-icon" @click.stop="removeTag(index)"></i>
+                </div>
+                <span v-if="currentTags.length === 0" class="no-tags">无标签</span>
+              </div>
+              <div class="tag-input-container">
+                <div class="tag-input-wrapper">
+                  <input 
+                    ref="tagInputRef"
+                    v-model="newTag" 
+                    class="tag-input beautify-input" 
+                    placeholder="输入或选择标签" 
+                    @keyup.enter="addTag"
+                    @keyup.delete="handleBackspace"
+                    @input="filterTags"
+                    @focus="showTagDropdown = true; filterTags()"
+                  />
+                  <div 
+                    v-if="showTagDropdown && filteredTags.length > 0" 
+                    ref="tagDropdownRef"
+                    class="tag-dropdown"
+                  >
+                    <div 
+                      v-for="tag in filteredTags" 
+                      :key="tag.id" 
+                      class="tag-dropdown-item"
+                      @click="selectTag(tag)"
+                    >
+                      <i class="fas fa-tag tag-icon-small"></i> {{ tag.name }}
+                    </div>
+                  </div>
+                </div>
+                <button class="add-tag-btn" @click="addTag" :disabled="!newTag.trim()">
+                  <i class="fas fa-plus"></i> 添加
+                </button>
+              </div>
+            </div>
+          </div>
           <div class="form-row"><label>图片：</label>
             <label class="file-label">
               <input type="file" accept="image/*" @change="onFileChange" class="file-input" />
@@ -100,7 +156,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 
 const visitedShops = ref([])
@@ -110,6 +166,14 @@ const showEditDialog = ref(false)
 const file = ref(null)
 const fileName = ref('')
 const editLatLng = ref(false)
+// 标签相关
+const currentTags = ref([])
+const newTag = ref('')
+const allTags = ref([])  // 存储所有可用的标签
+const showTagDropdown = ref(false)  // 控制标签下拉列表的显示
+const filteredTags = ref([])  // 根据输入过滤的标签列表
+const tagInputRef = ref(null)  // 标签输入框的引用
+const tagDropdownRef = ref(null)  // 标签下拉框的引用
 // 分页相关
 const page = ref(1)
 const pageSize = ref(10)
@@ -150,6 +214,14 @@ function onEditShopClick() {
   file.value = null
   fileName.value = ''
   editLatLng.value = false
+  
+  // 初始化标签 - 使用getTagsArray函数处理不同格式的标签数据
+  currentTags.value = getTagsArray(selectedShop.value.tags)
+  newTag.value = ''
+  
+  // 初始化标签下拉列表
+  filterTags()
+  
   showEditDialog.value = true
 }
 function onFileChange(e) {
@@ -159,10 +231,74 @@ function onFileChange(e) {
     fileName.value = f.name
   }
 }
+// 标签相关函数
+function getTagsArray(tags) {
+  // 处理不同格式的标签数据
+  if (!tags) return []
+  if (typeof tags === 'string') {
+    return tags.split(',').filter(t => t.trim()).map(t => t.trim())
+  }
+  if (Array.isArray(tags)) {
+    return tags.filter(t => t && (typeof t === 'string' ? t.trim() : t))
+  }
+  return []
+}
+
+async function addTag() {
+  const tag = newTag.value.trim()
+  if (!tag) return
+  
+  // 检查是否已存在该标签
+  if (!currentTags.value.includes(tag)) {
+    // 检查是否需要创建新标签
+    let tagExists = allTags.value.some(t => t.name.toLowerCase() === tag.toLowerCase())
+    
+    if (!tagExists) {
+      try {
+        // 创建新标签
+        const token = localStorage.getItem('token')
+        const res = await axios.post('/api/tag_add', { name: tag }, { headers: { Authorization: `Token ${token}` } })
+        if (res.data.status === 'success') {
+          // 添加到所有标签列表
+          allTags.value.push(res.data.tag)
+          console.log('创建新标签成功:', res.data.tag)
+        }
+      } catch (error) {
+        console.error('创建标签失败:', error)
+      }
+    }
+    
+    // 添加到当前标签列表
+    currentTags.value.push(tag)
+    // 更新editForm中的tags字段
+    editForm.value.tags = currentTags.value.join(',')
+  }
+  
+  newTag.value = ''
+  showTagDropdown.value = false
+}
+
+function removeTag(index) {
+  currentTags.value.splice(index, 1)
+  // 更新editForm中的tags字段
+  editForm.value.tags = currentTags.value.join(',')
+}
+
+function handleBackspace(e) {
+  // 当输入框为空且按下退格键时，删除最后一个标签
+  if (newTag.value === '' && currentTags.value.length > 0) {
+    removeTag(currentTags.value.length - 1)
+  }
+}
+
 async function updateShop() {
   const token = localStorage.getItem('token')
   const formData = new FormData()
   formData.append('shop_id', selectedShop.value.id)
+  
+  // 将当前标签数组转换为逗号分隔的字符串
+  editForm.value.tags = currentTags.value.join(',')
+  
   for (const k of ['name','country','city','address','phone','email','tags']) {
     formData.append(k, editForm.value[k] || '')
   }
@@ -178,146 +314,593 @@ async function updateShop() {
   const updated = visitedShops.value.find(s => s.id === selectedShop.value.id)
   if (updated) selectShop(updated)
 }
+// 获取所有标签
+async function fetchAllTags() {
+  try {
+    const token = localStorage.getItem('token')
+    const res = await axios.get('/api/tag_list', { headers: { Authorization: `Token ${token}` } })
+    allTags.value = res.data.tags || []
+    console.log('获取到所有标签:', allTags.value)
+  } catch (error) {
+    console.error('获取标签失败:', error)
+  }
+}
+
+// 根据输入过滤标签
+function filterTags() {
+  const input = newTag.value.toLowerCase().trim()
+  if (!input) {
+    filteredTags.value = allTags.value
+  } else {
+    filteredTags.value = allTags.value.filter(tag => 
+      tag.name.toLowerCase().includes(input) && !currentTags.value.includes(tag.name)
+    )
+  }
+}
+
+// 选择标签
+function selectTag(tag) {
+  if (!currentTags.value.includes(tag.name)) {
+    currentTags.value.push(tag.name)
+    // 更新editForm中的tags字段
+    editForm.value.tags = currentTags.value.join(',')
+  }
+  newTag.value = ''
+  showTagDropdown.value = false
+}
+
+// 处理点击事件，判断是否点击在下拉框外部
+function handleClickOutside(event) {
+  // 如果下拉框不显示，不需要处理
+  if (!showTagDropdown.value) return
+  
+  // 检查点击是否在标签输入框或下拉框内
+  const isClickInside = (
+    (tagInputRef.value && tagInputRef.value.contains(event.target)) ||
+    (tagDropdownRef.value && tagDropdownRef.value.contains(event.target))
+  )
+  
+  // 如果点击在外部，关闭下拉框
+  if (!isClickInside) {
+    showTagDropdown.value = false
+  }
+}
+
 onMounted(() => {
   fetchVisitedShops()
+  fetchAllTags()
+  
+  // 添加全局点击事件监听器
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  // 移除全局点击事件监听器
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
 <style scoped>
 .edit-page {
-  padding: 40px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(88,166,255,0.10);
-  min-height: 300px;
-  font-size: 1.2rem;
+  padding: 30px;
+  background: #f8fafd;
+  min-height: 100vh;
+  font-size: 1.1rem;
   color: #222;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 18px;
   position: relative;
 }
-.edit-shop-btn {
+
+/* 标签样式 */
+.edit-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: flex-start;
+  min-height: 24px;
+  padding: 2px 0;
+}
+
+.edit-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: #1677ff;
+  color: white;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  margin-right: 5px;
+  margin-bottom: 3px;
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.edit-tag.editable {
+  padding-right: 4px;
+  cursor: default;
+  box-shadow: 0 2px 4px rgba(22, 119, 255, 0.15);
+}
+
+.edit-tag.editable:hover {
+  background: #0958d9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(22, 119, 255, 0.25);
+}
+
+.tag-icon-small {
+  font-size: 10px;
+  margin-right: 3px;
+  color: white;
+  display: inline-block;
+}
+
+.remove-tag-icon {
+  font-size: 10px;
+  margin-left: 4px;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.remove-tag-icon:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.2);
+}
+
+.no-tags {
+  color: #999;
+  font-style: italic;
+  font-size: 12px;
+}
+
+/* 标签编辑相关样式 */
+.tag-edit-row {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.tag-edit-row label {
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #333;
+}
+
+.tag-edit-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.current-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 30px;
+  padding: 8px;
+  background: #f7faff;
+  border-radius: 8px;
+  border: 1px dashed #b3d6ff;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.tag-input-container {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.tag-input-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.tag-input {
+  flex: 1;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.tag-input:focus {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.2);
+  outline: none;
+}
+
+.tag-dropdown {
   position: absolute;
-  top: 32px;
-  right: 40px;
-  padding: 8px 28px;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 10000;
+  margin-top: 4px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.tag-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tag-dropdown::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.tag-dropdown::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.tag-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}
+
+.tag-dropdown-item {
+  padding: 10px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.tag-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.tag-dropdown-item:hover {
+  background: #f0f7ff;
+  padding-left: 16px;
+}
+
+.add-tag-btn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #1677ff, #0958d9);
+  color: white;
   border: none;
   border-radius: 8px;
-  font-size: 1.08rem;
   font-weight: 600;
-  background: #ccc;
-  color: #fff;
-  cursor: not-allowed;
-  transition: background 0.2s;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.15);
+  position: relative;
+  overflow: hidden;
 }
+
+.add-tag-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: transform 0.6s;
+  transform: skewX(-15deg);
+}
+
+.add-tag-btn:hover {
+  background: linear-gradient(135deg, #0958d9, #003eb3);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(9, 88, 217, 0.3);
+}
+
+.add-tag-btn:hover::before {
+  transform: skewX(-15deg) translateX(200%);
+}
+
+.add-tag-btn:disabled {
+  background: linear-gradient(135deg, #f5f5f5, #e0e0e0) !important;
+  color: #999 !important;
+  cursor: not-allowed !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+  transform: none !important;
+}
+.edit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.edit-shop-btn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
+  color: #999;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: not-allowed;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.edit-shop-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: transform 0.6s;
+  transform: skewX(-15deg);
+}
+
 .edit-shop-btn.active {
-  background: linear-gradient(90deg, #58a6ff, #1677ff);
+  background: linear-gradient(135deg, #1677ff, #0958d9);
   color: #fff;
   cursor: pointer;
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.2);
 }
+
+.edit-shop-btn.active:hover {
+  background: linear-gradient(135deg, #0958d9, #003eb3);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(9, 88, 217, 0.3);
+}
+
+.edit-shop-btn.active:hover::before {
+  transform: skewX(-15deg) translateX(200%);
+}
+
 .edit-shop-btn:disabled {
-  background: #ccc !important;
-  color: #fff !important;
+  background: linear-gradient(135deg, #f5f5f5, #e0e0e0) !important;
+  color: #999 !important;
   cursor: not-allowed !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
 }
 .visited-table {
   width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 32px;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  table-layout: auto;
+  min-width: max-content;
+  transition: all 0.3s ease;
+  margin-bottom: 20px;
 }
+
 .visited-table th, .visited-table td {
-  border: 1px solid #e0eaff;
-  padding: 10px 14px;
+  padding: 16px 20px;
   text-align: center;
   font-size: 1.08rem;
+  transition: background 0.3s ease;
+  white-space: nowrap;
+  height: 52px;
+  line-height: 52px;
 }
+
 .visited-table th {
-  background: #f7faff;
-  color: #1765d8;
+  background: #f8fafd;
+  color: #2c3e50;
   font-weight: 700;
+  border-bottom: 2px solid #e0eaff;
+  letter-spacing: 1.2px;
+  white-space: nowrap;
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 0.95rem;
 }
+
+.visited-table td {
+  color: #2c3e50;
+  border-bottom: 1px solid #eef2f7;
+  vertical-align: middle;
+  text-align: center;
+}
+
+.visited-table tr:last-child td {
+  border-bottom: none;
+}
+
+.visited-table tbody tr:nth-child(odd) {
+  background: #f8fafd;
+}
+
+.visited-table tbody tr:nth-child(even) {
+  background: #ffffff;
+}
+
+.visited-table tbody tr:hover {
+  background: #f5f9ff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
 .visited-table tr.selected {
-  background: #eaf4ff;
+  background: #e0f0ff !important;
+  border-left: 4px solid #1677ff;
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.15);
+  transition: all 0.3s ease;
 }
 .edit-dialog-mask {
   position: fixed;
   left: 0; top: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.18);
+  background: rgba(0,0,0,0.7);
   z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
+  backdrop-filter: blur(5px);
+  animation: fadeIn 0.3s ease;
 }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .edit-dialog {
   background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 12px 48px rgba(22,120,255,0.18);
-  padding: 38px 44px 28px 44px;
+  border-radius: 20px;
+  box-shadow: 0 15px 50px rgba(22,119,255,0.2);
+  padding: 32px 36px;
   min-width: 380px;
-  max-width: 96vw;
+  max-width: 90vw;
   max-height: 92vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
-  animation: popIn 0.2s;
-}
-@keyframes popIn {
-  from { transform: scale(0.95); opacity: 0.7; }
-  to { transform: scale(1); opacity: 1; }
+  overflow: hidden;
 }
 .edit-dialog-title {
-  font-size: 1.32rem;
+  font-size: 1.5rem;
   color: #1765d8;
   font-weight: 800;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
   letter-spacing: 1px;
+  position: relative;
+  padding-bottom: 12px;
 }
+
+.edit-dialog-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, #58a6ff, #1677ff);
+  border-radius: 3px;
+}
+
 .edit-dialog-content {
   width: 100%;
   margin-bottom: 18px;
   font-size: 1.16rem;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  max-height: 70vh;
+  padding-right: 16px;
+  padding-bottom: 10px;
+}
+
+.edit-dialog-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.edit-dialog-content::-webkit-scrollbar-track {
+  background: #f5f9ff;
+  border-radius: 10px;
+}
+
+.edit-dialog-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #58a6ff, #1677ff);
+  border-radius: 10px;
+  border: 2px solid #f5f9ff;
+}
+
+.edit-dialog-content::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #1677ff, #0056d6);
 }
 .edit-dialog-content .form-row {
   display: flex;
-  align-items: center;
-  margin-bottom: 18px;
-  font-size: 1.08rem;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #f8fafd;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.05);
   gap: 10px;
 }
+
+.edit-dialog-content .form-row:hover {
+  background: #f0f7ff;
+}
+
 .edit-dialog-content .form-row label {
-  color: #888;
-  font-weight: 600;
+  color: #1765d8;
+  font-weight: 700;
   min-width: 70px;
   display: inline-block;
   font-size: 1.08rem;
+  padding-right: 16px;
+  position: relative;
 }
+
+.edit-dialog-content .form-row label::after {
+  content: ':';
+  position: absolute;
+  right: 8px;
+  color: #58a6ff;
+}
+
 .edit-dialog-content .form-row input[type="text"],
 .edit-dialog-content .form-row input[type="number"] {
-  width: 100%;
-  padding: 8px 12px;
+  flex: 1;
+  padding: 10px 16px;
   border: 1.5px solid #b3d6ff;
   border-radius: 8px;
   font-size: 1.08rem;
   background: #f7faff;
-  transition: border 0.2s;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.05);
 }
+
 .edit-dialog-content .form-row input[type="text"]:focus,
 .edit-dialog-content .form-row input[type="number"]:focus {
   border: 1.5px solid #1677ff;
   outline: none;
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.1);
 }
+
 .beautify-input {
-  background: linear-gradient(90deg, #f7faff 60%, #eaf4ff 100%);
+  background: #f7faff;
   border: 1.5px solid #b3d6ff;
   border-radius: 8px;
   font-size: 1.08rem;
-  padding: 8px 12px;
-  transition: border 0.2s, box-shadow 0.2s;
-  box-shadow: 0 2px 8px rgba(88,166,255,0.06);
+  padding: 10px 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.05);
 }
+
 .beautify-input:focus {
   border: 1.5px solid #1677ff;
   outline: none;
-  box-shadow: 0 0 0 2px #b3d6ff44;
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.1);
 }
 .latlng-input:disabled {
   background: #f0f4fa !important;
@@ -326,27 +909,46 @@ onMounted(() => {
 }
 .edit-dialog-actions {
   display: flex;
-  gap: 18px;
-  margin-top: 12px;
-  justify-content: center;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #eaedf2;
 }
+
 .edit-dialog-btn {
-  padding: 8px 32px;
-  border: none;
-  border-radius: 8px;
+  padding: 12px 24px;
+  border-radius: 12px;
   font-size: 1.08rem;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(88,166,255,0.10);
-  transition: background 0.2s, box-shadow 0.2s;
+  border: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.1);
 }
+
 .edit-dialog-btn.confirm {
   background: linear-gradient(90deg, #58a6ff, #1677ff);
   color: #fff;
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.18);
 }
+
+.edit-dialog-btn.confirm:hover {
+  background: linear-gradient(90deg, #1677ff, #0056d6);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(22, 119, 255, 0.25);
+}
+
 .edit-dialog-btn.cancel {
-  background: #ccc;
-  color: #fff;
+  background: #f0f2f5;
+  color: #666;
+}
+
+.edit-dialog-btn.cancel:hover {
+  background: #e6e6e6;
+  color: #333;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
 }
 .file-name {
   color: #1765d8;
@@ -364,22 +966,41 @@ onMounted(() => {
 }
 .file-btn {
   display: inline-block;
-  padding: 10px 28px;
-  background: linear-gradient(90deg, #58a6ff, #1677ff);
-  color: #fff;
-  border-radius: 10px;
-  font-size: 1.08rem;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #1677ff, #0958d9);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(88,166,255,0.10);
-  transition: background 0.2s, box-shadow 0.2s;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.2);
   margin-right: 12px;
-  border: none;
-  outline: none;
+  position: relative;
+  overflow: hidden;
 }
+
+.file-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: transform 0.6s;
+  transform: skewX(-15deg);
+}
+
+.file-btn:hover::before {
+  transform: skewX(-15deg) translateX(200%);
+}
+
 .file-btn:hover {
-  background: linear-gradient(90deg, #1677ff, #58a6ff);
-  box-shadow: 0 4px 16px rgba(88,166,255,0.18);
+  background: linear-gradient(135deg, #0958d9, #003eb3);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(9, 88, 217, 0.3);
 }
 .latlng-checkbox-row {
   display: flex;
@@ -390,49 +1011,64 @@ onMounted(() => {
   margin-top: -10px;
 }
 .edit-pagination {
-  margin-top: 16px;
   display: flex;
   align-items: center;
-  gap: 16px;
   justify-content: center;
-  background: #f7faff;
+  margin-top: 30px;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f8fafd, #eaf4ff);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(22, 119, 255, 0.08);
+  border: 1px solid rgba(22, 119, 255, 0.1);
+  font-size: 1.08rem;
+}
+
+.edit-pagination select, .edit-pagination input, .edit-pagination button {
   border-radius: 10px;
-  padding: 12px 0;
-  box-shadow: 0 2px 8px rgba(88,166,255,0.06);
-}
-.edit-pagination select, .edit-pagination input {
-  border-radius: 8px;
-  border: 1.5px solid #b3d6ff;
+  border: 1px solid #d0e0ff;
   background: #fff;
   color: #1765d8;
   font-weight: 600;
-  padding: 7px 18px;
+  padding: 10px 16px;
   margin: 0 2px;
-  transition: background 0.2s, box-shadow 0.2s;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.05);
 }
+
 .edit-pagination select:focus, .edit-pagination input:focus {
-  border: 1.5px solid #1677ff;
   outline: none;
-  box-shadow: 0 0 0 2px #b3d6ff44;
+  border-color: #1677ff;
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.1);
 }
-.edit-pagination button {
-  border-radius: 8px;
-  border: 1.5px solid #b3d6ff;
-  background: #fff;
-  color: #1765d8;
-  font-weight: 600;
-  padding: 7px 18px;
-  margin: 0 2px;
-  transition: background 0.2s, box-shadow 0.2s;
-}
+
 .edit-pagination button:disabled {
   background: #f0f0f0;
   color: #aaa;
   cursor: not-allowed;
 }
+
 .edit-pagination button:not(:disabled):hover {
   background: #1677ff;
   color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(22, 119, 255, 0.1);
+}
+
+.page-input {
+  width: 90px;
+  padding: 8px 14px;
+  border: 1.5px solid #b3d6ff;
+  border-radius: 8px;
+  font-size: 1.12rem;
+  text-align: center;
+  background: #f7faff;
+}
+
+.page-input:focus {
+  outline: none;
+  border-color: #1677ff;
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.1);
 }
 .level-radio-group {
   display: flex;

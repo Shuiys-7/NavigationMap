@@ -4,7 +4,7 @@ import RegisterForm from '../components/RegisterForm.vue'
 import HomeLayout from '../components/HomeLayout.vue'
 import BIDashboard from '../components/BIDashboard.vue'
 import MapPage from '../components/MapPage.vue'
-import NavigationMapPage from '../components/NavigationMapPage.vue'
+// import NavigationMapPage from '../components/NavigationMapPage.vue'
 import ProfilePage from '../components/ProfilePage.vue'
 import DataPage from '../components/DataPage.vue'
 import EditPage from '../components/EditPage.vue'
@@ -21,7 +21,7 @@ const routes = [
       { path: '', redirect: 'dashboard' },
       { path: 'dashboard', component: BIDashboard },
       { path: 'showcase', component: MapPage },
-      { path: 'navigation', component: NavigationMapPage },
+      // { path: 'navigation', component: NavigationMapPage },
       { path: 'data', component: DataPage },
       { path: 'edit', component: EditPage },
       { path: 'profile', component: ProfilePage },

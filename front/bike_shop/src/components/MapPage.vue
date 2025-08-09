@@ -28,7 +28,7 @@
           <label>标签：</label>
           <select v-model="filters.tag" @change="applyFilters">
             <option value="">全部标签</option>
-            <option v-for="tag in uniqueTags" :key="tag" :value="tag">{{ tag }}</option>
+            <option v-for="tag in allTags" :key="tag.id" :value="tag.name">{{ tag.name }}</option>
           </select>
         </div>
         <div class="filter-group">
@@ -166,22 +166,82 @@
             <input v-model="newShop.email" placeholder="请输入邮箱地址" />
           </div>
           <div class="form-group">
+            <label>评级：</label>
+            <div class="radio-group">
+              <label v-for="level in uniqueLevels" :key="level" class="radio-item">
+                <input
+                  type="radio"
+                  :value="level"
+                  v-model="newShop.level"
+                  @change="applyFilters"
+                />
+                {{ level }}
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
             <label>标签：</label>
             <div class="tags-input">
-              <div class="selected-tags">
-                <span v-for="(tag, index) in newShop.tags" :key="index" class="tag">
-                  {{ tag }}
-                  <button @click="removeTag(index)" class="remove-tag">×</button>
-                </span>
+              <!-- 标签多选 -->
+              <div class="tag-select-group">
+                <label v-for="tag in allTags" :key="tag.id" class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    :value="tag.id"
+                    v-model="newShop.tags"
+                  />
+                  {{ tag.name }}
+                </label>
               </div>
-              <div class="tag-input-group">
-                <input v-model="newTag" placeholder="输入标签" @keyup.enter="addTag" />
-                <button @click="addTag" class="add-tag-btn">添加</button>
+
+              <!-- 自定义标签 -->
+              <div class="custom-tag-group">
+                <input
+                  v-model="customTag"
+                  placeholder="新建自定义标签"
+                  @keyup.enter="addCustomTag"
+                />
+                <button @click="addCustomTag" class="add-tag-btn">添加</button>
+              </div>
+
+              <!-- 展示已选择的标签 -->
+              <div class="selected-tags">
+      <span
+        v-for="(tagId, index) in newShop.tags"
+        :key="index"
+        class="tag"
+      >
+        {{ allTags.find(t => t.id === tagId)?.name || '未知标签' }}
+        <button @click="removeTag(index)" class="remove-tag">×</button>
+      </span>
               </div>
             </div>
           </div>
           <div class="coordinates-info">
             <p><strong>坐标：</strong>{{ newShop.lat }}, {{ newShop.lon }}</p>
+          </div>
+          <div class="form-group">
+            <label>是否拜访：</label>
+            <div class="radio-group">
+              <label class="radio-item">
+                <input
+                  type="radio"
+                  value="1"
+                  v-model="newShop.visit"
+                  @change="applyFilters"
+                />
+                已拜访
+              </label>
+              <label class="radio-item">
+                <input
+                  type="radio"
+                  value="0"
+                  v-model="newShop.visit"
+                  @change="applyFilters"
+                />
+                未拜访
+              </label>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -210,6 +270,58 @@ let rotateHandler = null
 let allGeoData = ref([])
 let filteredGeoData = ref([])
 
+// 标签
+const allTags = ref([]) // 所有标签
+const customTag = ref('')
+
+onMounted(async () => {
+  try {
+    const token = localStorage.getItem('token')
+    const res = await axios.get('/api/tag_list', {
+      headers: {
+        Authorization: `Token ${token}`
+      }
+    })  // 假设这是你的接口
+    allTags.value = res.data.tags
+    // console.log(allTags)
+  } catch (error) {
+    console.error('标签加载失败', error)
+  }
+})
+
+// 添加自定义标签
+const addCustomTag = async () => {
+  const tag = customTag.value.trim()
+  if (!tag) return alert('请输入标签名称')
+
+  // 判断是否已在选中标签中，避免重复添加
+  if (newShop.value.tags.includes(tag)) {
+    alert('标签已存在')
+    return
+  }
+
+  try {
+    const token = localStorage.getItem('token')
+    const res = await axios.post('/api/tag_add', { name: tag }, {
+      headers: {
+        Authorization: `Token ${token}`
+      }
+    })
+
+    const newTag = res.data.tag  // 取正确的标签对象
+    allTags.value.push(newTag)   // 添加到所有标签列表
+    newShop.value.tags.push(newTag.name)  // 添加到选中标签数组
+    customTag.value = ''  // 清空输入框
+
+  } catch (error) {
+    console.error('添加标签失败', error)
+    alert('添加标签失败，请重试')
+  }
+}
+
+// 移除标签
+//////////////////////
+
 // 筛选相关
 const filters = ref({
   country: '',
@@ -234,7 +346,9 @@ const newShop = ref({
   email: '',
   tags: [],
   lat: 0,
-  lon: 0
+  lon: 0,
+  visit: false,
+  level: ''
 })
 const newTag = ref('')
 
@@ -472,7 +586,9 @@ function closeAddShopModal() {
     email: '',
     tags: [],
     lat: 0,
-    lon: 0
+    lon: 0,
+    visit: 0,
+    level: ''
   }
   newTag.value = ''
 }
@@ -503,14 +619,14 @@ async function saveNewShop() {
       address: newShop.value.address,
       phone: newShop.value.phone,
       email: newShop.value.email,
-      tags: newShop.value.tags.join(','),
+      tags: newShop.value.tags,
       lat: newShop.value.lat,
       lon: newShop.value.lon,
-      visited: false,
-      level: ''
+      visited: newShop.value.visit,
+      level: newShop.value.level
     }
-
-    const response = await axios.post('/api/shop/create/', shopData, {
+    // console.log(shopData)
+    const response = await axios.post('/api/shop_create', shopData, {
       headers: { Authorization: `Token ${token}` }
     })
 
@@ -1619,4 +1735,59 @@ label {
     width: 95%;
   }
 }
+
+.tag-select-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  border: 1px solid #ccc;       /* 轻微灰色边框 */
+  border-radius: 12px;          /* 圆角更柔和 */
+  padding: 6px 12px;
+  font-size: 14px;
+  color: #333;                  /* 经典深灰文字 */
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.checkbox-label:hover {
+  background-color: #f5f5f5;    /* 轻微灰色悬浮背景 */
+  border-color: #999;           /* 边框加深 */
+}
+
+.checkbox-label:hover {
+  background-color: #d0dbff;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin-right: 8px;
+  accent-color: #3b5bdb; /* 主色调，现代浏览器支持 */
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* 选中时的样式 */
+.checkbox-label input[type="checkbox"]:checked + span {
+  font-weight: 600;
+  color: #1e40af;
+}
+
+.radio-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 5px;
+}
+.radio-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
 </style>
