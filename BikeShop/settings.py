@@ -55,6 +55,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # 自定义中间件，用于监控数据库查询性能
+    'BikeShop.middleware.QueryMonitorMiddleware',
 ]
 
 ROOT_URLCONF = 'BikeShop.urls'
@@ -83,15 +85,98 @@ WSGI_APPLICATION = 'BikeShop.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': 'dj_db_conn_pool.backends.mysql',  # 使用连接池后端替代原生MySQL后端
         'NAME': 'bike_shops',
         'HOST': '127.0.0.1',
         'PORT': 3306,
         'USER': 'root',
-        'PASSWORD': 'luck3375'
+        'PASSWORD': 'luck3375',
+        # 数据库连接池配置
+        'CONN_MAX_AGE': 60,  # 连接的最大生存时间（秒）
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",  # 设置严格的事务模式
+            'charset': 'utf8mb4',  # 使用utf8mb4字符集支持所有Unicode字符
+        },
+        # 连接池配置
+        'POOL_OPTIONS': {
+            'POOL_SIZE': 20,  # 连接池大小
+            'MAX_OVERFLOW': 10,  # 允许的最大溢出连接数
+            'RECYCLE': 3600,  # 连接回收时间（秒）
+            'TIMEOUT': 30,  # 获取连接的超时时间（秒）
+        }
     }
 }
 
+
+# REST Framework配置
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    # 添加限流配置
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/day',  # 匿名用户每天最多100次请求
+        'user': '1000/day'  # 认证用户每天最多1000次请求
+    },
+}
+
+# 日志配置
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'level': 'WARNING',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
+            'formatter': 'verbose',
+        },
+        'db_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'db_queries.log'),
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'django.db.backends': {
+            'handlers': ['db_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
+
+# 确保日志目录存在
+os.makedirs(os.path.join(BASE_DIR, 'logs'), exist_ok=True)
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

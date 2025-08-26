@@ -26,6 +26,7 @@ class ShopSerializer(serializers.ModelSerializer):
             'image',
             'visited',
             'website',
+            'shop_note'
         ]
 
 

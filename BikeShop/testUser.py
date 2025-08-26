@@ -10,4 +10,4 @@ from django.contrib.auth.models import User
 user = User.objects.create_user(username='shuiys', password='123456')
 user.save()
 
-print(f"Created user: {user.username}")
+# print(f"Created user: {user.username}")

@@ -4,7 +4,7 @@
     <div class="dashboard-header">
       <h1 class="dashboard-title">商店拜访数据分析</h1>
     </div>
-    
+
     <div class="dashboard-stats-grid">
       <div class="dashboard-stat-card">
         <div class="stat-title">全部商店</div>
@@ -23,13 +23,13 @@
         <div class="stat-value">{{ stats.totalVisits }}</div>
       </div>
     </div>
-    
+
     <div class="dashboard-charts-container">
       <div class="chart-card">
         <div class="chart-title">商店拜访情况</div>
         <div ref="visitPieChartRef" class="chart-container"></div>
       </div>
-      
+
       <div class="chart-card">
         <div class="chart-title">拜访统计</div>
         <div class="visit-stats">
@@ -72,7 +72,7 @@ const stats = ref({
 // 计算拜访完成率
 const visitCompletionRate = computed(() => {
   if (stats.value.totalShops === 0) return 0
-  return Math.round((stats.value.visitedShops / stats.value.totalShops) * 100)
+  return Math.round((stats.value.visitedShops / stats.value.totalShops) * 10000) / 100
 })
 
 // 检测是否为移动设备
@@ -101,7 +101,7 @@ async function fetchStats() {
     // 所有人拜访
     const allVisitRes = await axios.get('/api/all-visit', { headers: { Authorization: `Token ${token}` } })
     stats.value.totalVisits = allVisitRes.data.total_visits || 0
-    
+
     // 数据加载完成后初始化图表
     initCharts()
   } catch (error) {
@@ -117,15 +117,15 @@ function initCharts() {
 // 初始化拜访饼图
 function initVisitPieChart() {
   if (!visitPieChartRef.value) return
-  
+
   // 如果图表已经存在，先销毁
   if (visitPieChart) {
     visitPieChart.dispose()
   }
-  
+
   // 初始化图表
   visitPieChart = echarts.init(visitPieChartRef.value)
-  
+
   // 设置图表选项
   const option = {
     tooltip: {
@@ -169,7 +169,7 @@ function initVisitPieChart() {
       }
     ]
   }
-  
+
   // 使用配置项设置图表
   visitPieChart.setOption(option)
 }
@@ -338,11 +338,11 @@ onBeforeUnmount(() => {
   .dashboard-stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .dashboard-title {
     font-size: 1.6rem;
   }
-  
+
   .stat-value {
     font-size: 2rem;
   }
@@ -352,62 +352,62 @@ onBeforeUnmount(() => {
   .dashboard-container {
     padding: 16px;
   }
-  
+
   .dashboard-title {
     font-size: 1.4rem;
     padding-bottom: 10px;
   }
-  
+
   .dashboard-stats-grid {
     gap: 16px;
     margin-bottom: 24px;
   }
-  
+
   .dashboard-stat-card {
     padding: 16px 0;
   }
-  
+
   .stat-title {
     font-size: 1rem;
     margin-bottom: 8px;
   }
-  
+
   .stat-value {
     font-size: 1.8rem;
   }
-  
+
   .dashboard-charts-container {
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  
+
   .chart-card {
     padding: 16px;
   }
-  
+
   .chart-title {
     font-size: 1.2rem;
     margin-bottom: 16px;
     padding-bottom: 10px;
   }
-  
+
   .chart-container {
     min-height: 250px;
   }
-  
+
   .visit-stats {
     padding: 10px;
     gap: 16px;
   }
-  
+
   .visit-stat-item {
     padding: 12px 16px;
   }
-  
+
   .visit-stat-label {
     font-size: 1rem;
   }
-  
+
   .visit-stat-value {
     font-size: 1.3rem;
   }
@@ -417,49 +417,49 @@ onBeforeUnmount(() => {
   .dashboard-container {
     padding: 12px;
   }
-  
+
   .dashboard-title {
     font-size: 1.3rem;
   }
-  
+
   .dashboard-stats-grid {
     grid-template-columns: 1fr;
     gap: 12px;
   }
-  
+
   .dashboard-stat-card {
     padding: 14px 0;
   }
-  
+
   .stat-title {
     font-size: 0.95rem;
   }
-  
+
   .stat-value {
     font-size: 1.6rem;
   }
-  
+
   .chart-card {
     padding: 12px;
   }
-  
+
   .chart-title {
     font-size: 1.1rem;
     margin-bottom: 12px;
   }
-  
+
   .chart-container {
     min-height: 200px;
   }
-  
+
   .visit-stat-item {
     padding: 10px 12px;
   }
-  
+
   .visit-stat-label {
     font-size: 0.9rem;
   }
-  
+
   .visit-stat-value {
     font-size: 1.2rem;
   }

@@ -16,13 +16,14 @@
       <div v-if="loading" class="loading-indicator">
         <i class="fas fa-spinner fa-spin"></i> 加载中...
       </div>
-      <table class="visit-table">
+      <div class="table-container">
+        <table class="visit-table">
         <thead>
           <tr>
             <th>拜访ID</th>
             <th>拜访对象</th>
             <th>时间</th>
-            <th>备注</th>
+            <th>商店备注</th>
             <th>标签</th>
           </tr>
         </thead>
@@ -41,17 +42,18 @@
               {{ formatDateTime(item.visit_time) }}
             </div>
           </td>
+
           <td>
-            <div class="notes-cell" :title="item.notes">
-              {{ item.notes || '无备注' }}
+            <div class="notes-cell" :title="item.shop_note">
+              {{ item.shop_note || '无商店备注' }}
             </div>
           </td>
           <td>
             <div class="visit-tags">
               <!-- 调试信息已移除 -->
-              
+
               <!-- 标签处理逻辑 -->
-              <span v-for="(tag, index) in (item.tags && typeof item.tags === 'string' ? item.tags.split(',').filter(t => t.trim()) : [])" 
+              <span v-for="(tag, index) in (item.tags && typeof item.tags === 'string' ? item.tags.split(',').filter(t => t.trim()) : [])"
                     :key="index"
                     class="visit-tag"
                     style="display: inline-block !important; margin-right: 5px; margin-bottom: 5px;">
@@ -72,21 +74,24 @@
           </tr>
         </tbody>
       </table>
+      </div>
       <!-- 分页控件 -->
-      <div class="visit-pagination">
-        <div class="pagination-left">
-          <span>共 {{ total }} 条记录</span>
-        </div>
-        <div class="pagination-center">
-          <button
-            class="pagination-btn"
-            :disabled="page===1 || loading"
-            @click="gotoPage(page-1)"
-            :class="{disabled: page===1 || loading}"
-          >
-            <i class="fas fa-chevron-left"></i>
-          </button>
-          <span class="page-info">
+
+    </div>
+    <div class="visit-pagination">
+      <div class="pagination-left">
+        <span>共 {{ total }} 条记录</span>
+      </div>
+      <div class="pagination-center">
+        <button
+          class="pagination-btn"
+          :disabled="page===1 || loading"
+          @click="gotoPage(page-1)"
+          :class="{disabled: page===1 || loading}"
+        >
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <span class="page-info">
             <span>第</span>
             <input
               v-model.number="page"
@@ -96,27 +101,26 @@
             />
             <span>/ {{ Math.max(1, Math.ceil(total / pageSize)) }} 页</span>
           </span>
-          <button
-            class="pagination-btn"
-            :disabled="page===Math.max(1, Math.ceil(total / pageSize)) || loading"
-            @click="gotoPage(page+1)"
-            :class="{disabled: page===Math.max(1, Math.ceil(total / pageSize)) || loading}"
-          >
-            <i class="fas fa-chevron-right"></i>
-          </button>
-        </div>
-        <div class="pagination-right">
-          <span>每页</span>
-          <select
-            v-model.number="pageSize"
-            @change="onPageSizeChange"
-            :disabled="loading"
-            class="page-size-select"
-          >
-            <option v-for="size in pageSizes" :key="size" :value="size">{{ size }}</option>
-          </select>
-          <span>条</span>
-        </div>
+        <button
+          class="pagination-btn"
+          :disabled="page===Math.max(1, Math.ceil(total / pageSize)) || loading"
+          @click="gotoPage(page+1)"
+          :class="{disabled: page===Math.max(1, Math.ceil(total / pageSize)) || loading}"
+        >
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+      <div class="pagination-right">
+        <span>每页</span>
+        <select
+          v-model.number="pageSize"
+          @change="onPageSizeChange"
+          :disabled="loading"
+          class="page-size-select"
+        >
+          <option v-for="size in pageSizes" :key="size" :value="size">{{ size }}</option>
+        </select>
+        <span>条</span>
       </div>
     </div>
     <!-- 删除确认弹窗 -->
@@ -186,14 +190,7 @@
                 </div>
               </div>
 
-              <div class="form-item">
-                <label><i class="fas fa-comment-alt"></i> 备注</label>
-                <textarea
-                  v-model="noteInput"
-                  placeholder="请输入拜访备注信息..."
-                  class="textarea"
-                ></textarea>
-              </div>
+
             </div>
 
             <!-- 右侧 -->
@@ -285,7 +282,6 @@ const shopDropdownVisible = ref(false)
 // 文件上传相关变量已移除
 const showDialog = ref(false)
 const dialogMsg = ref('')
-const noteInput = ref('') // 备注输入
 const selectedVisit = ref(null)
 const showDeleteDialog = ref(false)
 const loading = ref(false) // 加载状态
@@ -350,7 +346,7 @@ async function fetchVisitList() {
           item.tags = String(item.tags)
           console.log(`转换后的标签: ${item.tags}`)
         }
-      })  
+      })
     }
 
     // 检查返回数据格式
@@ -591,6 +587,30 @@ function selectShop(shop) {
   selectedShop.value = shop
   shopInput.value = shop.name
   shopDropdownVisible.value = false
+  
+  // 如果店铺有标签，加载到已选标签中
+  if (shop.tags && typeof shop.tags === 'string' && shop.tags.trim() !== '') {
+    // 清空当前已选标签
+    selectedTags.value = []
+    
+    // 将店铺标签字符串分割为数组
+    const shopTagNames = shop.tags.split(',').map(tag => tag.trim()).filter(Boolean)
+    
+    // 将标签名称转换为标签ID并添加到已选标签中
+    shopTagNames.forEach(tagName => {
+      const tag = allTags.value.find(t => t.name.toLowerCase() === tagName.toLowerCase())
+      if (tag) {
+        selectedTags.value.push(tag.id)
+      }
+    })
+    
+    if (selectedTags.value.length > 0) {
+      dialogMsg.value = '已加载店铺标签'
+      setTimeout(() => {
+        if (dialogMsg.value === '已加载店铺标签') dialogMsg.value = ''
+      }, 2000)
+    }
+  }
 }
 // 文件变更函数已移除
 function closeDialog() {
@@ -602,7 +622,6 @@ function closeDialog() {
   shopInput.value = ''
   selectedShop.value = null
   dialogMsg.value = ''
-  noteInput.value = '' // 清空备注
   selectedTags.value = [] // 清空选中标签
   customTag.value = '' // 清空自定义标签输入
   shopDropdownVisible.value = false // 关闭下拉列表
@@ -651,7 +670,6 @@ async function submitVisit() {
       shop_id: selectedShop.value.id,
       shop_name: selectedShop.value.name,
       image: newImgName,
-      notes: noteInput.value,
       tags: selectedTags.value // 添加标签IDs
     }, { headers: { Authorization: `Token ${token}` } })
 
@@ -894,6 +912,32 @@ async function confirmDelete() {
     width: 90%;
     padding: 20px;
   }
+
+  .table-container {
+    max-height: calc(100vh - 250px);
+    min-height: 250px;
+  }
+
+  .visit-table th, .visit-table td {
+    padding: 12px 14px;
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .visit-table-wrapper {
+    padding: 16px 12px;
+  }
+
+  .table-container {
+    max-height: calc(100vh - 200px);
+    min-height: 200px;
+  }
+
+  .visit-table th, .visit-table td {
+    padding: 10px 12px;
+    font-size: 0.85rem;
+  }
 }
 .visit-toolbar {
   display: flex;
@@ -955,14 +999,45 @@ async function confirmDelete() {
   justify-content: flex-start;
   align-items: stretch;
   width: 100%;
-  overflow-x: auto;
-  min-height: 0;
   position: relative;
   background: #fff;
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 4px 20px rgba(22, 119, 255, 0.08);
   border: 1px solid rgba(22, 119, 255, 0.1);
+}
+
+.table-container {
+  width: 100%;
+  overflow: auto;
+  max-height: calc(100vh - 300px);
+  min-height: 300px;
+  position: relative;
+  border-radius: 12px;
+  /* 添加滚动条样式 */
+  scrollbar-width: thin;
+  scrollbar-color: #d0e0ff #f8fafd;
+}
+
+/* 自定义滚动条样式 */
+.table-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f8fafd;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background-color: #d0e0ff;
+  border-radius: 4px;
+  border: 2px solid #f8fafd;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background-color: #1677ff;
 }
 
 .loading {
@@ -1062,11 +1137,12 @@ async function confirmDelete() {
   border-spacing: 0;
   background: #fff;
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   table-layout: auto;
   min-width: max-content;
   transition: all 0.3s ease;
+  margin: 0;
 }
 .visit-table th, .visit-table td {
   padding: 16px 20px;
@@ -1075,7 +1151,8 @@ async function confirmDelete() {
   transition: background 0.3s ease;
   white-space: nowrap; /* 不换行，始终一行显示 */
   height: 52px; /* 统一行高，可根据需要调整 */
-  line-height: 52px; /* 垂直居中 */
+  line-height: 1.5; /* 调整行高比例 */
+  vertical-align: middle;
 }
 .visit-table th {
   background: linear-gradient(to bottom, #f0f7ff, #e6f0ff);
@@ -1089,8 +1166,11 @@ async function confirmDelete() {
   font-size: 0.95rem;
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 20;
   padding: 14px 16px;
+  box-shadow: 0 2px 5px rgba(22, 119, 255, 0.1);
+  /* 确保表头背景色完全不透明 */
+  background-color: #f0f7ff;
 }
 .visit-table td {
   color: #2c3e50;
@@ -1407,6 +1487,8 @@ button:disabled {
   }
   .visit-table {
     font-size: 14px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* 提升iOS滚动体验 */
   }
   .visit-table th, .visit-table td {
     padding: 8px 10px;
@@ -1455,73 +1537,79 @@ button:disabled {
     align-items: stretch;
     gap: 15px;
   }
-  
+
   .toolbar-btns {
     width: 100%;
     justify-content: space-between;
   }
-  
+
   .add-visit-btn, .delete-visit-btn {
     width: 48%;
     justify-content: center;
   }
-  
+
   .visit-table-wrapper {
+    width: 100%;
+    max-height: 400px;
+    overflow-y: auto;
     overflow-x: auto;
     padding: 16px;
+    -webkit-overflow-scrolling: touch; /* 提升iOS滚动体验 */
   }
-  
+
   .visit-table {
     min-width: 650px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* 提升iOS滚动体验 */
   }
-  
+
   .visit-dialog {
     width: 95%;
     padding: 16px;
   }
-  
+
   .dialog-header {
     padding: 16px;
   }
-  
+
   .dialog-title {
     font-size: 18px;
   }
-  
+
   .dialog-body {
     padding: 16px;
     max-height: calc(90vh - 120px);
   }
-  
+
   .form-item label {
     font-size: 14px;
   }
-  
+
   .input, .textarea {
     padding: 10px 12px;
     font-size: 14px;
   }
-  
+
   .tags-select,
   .selected-tags {
     max-height: 150px;
   }
-  
+
   .tag-option {
     padding: 5px 10px;
     font-size: 13px;
   }
-  
+
   .tag {
     padding: 5px 10px;
     font-size: 13px;
   }
-  
+
   .btn {
     padding: 8px 16px;
     font-size: 14px;
   }
-  
+
   .dialog-footer {
     padding: 16px;
     gap: 12px;
@@ -1532,70 +1620,70 @@ button:disabled {
   .visit-toolbar-title {
     font-size: 18px;
   }
-  
+
   .visit-pagination {
     font-size: 0.85rem;
   }
-  
+
   .visit-pagination button,
   .visit-pagination input,
   .visit-pagination select {
     font-size: 0.85rem;
     padding: 5px 8px;
   }
-  
+
   .dialog-title {
     font-size: 16px;
   }
-  
+
   .dialog-close {
     width: 32px;
     height: 32px;
     font-size: 16px;
   }
-  
+
   .form-item label {
     font-size: 13px;
   }
-  
+
   .input, .textarea {
     padding: 8px 10px;
     font-size: 13px;
   }
-  
+
   .tag-option {
     padding: 4px 8px;
     font-size: 12px;
   }
-  
+
   .tag {
     padding: 4px 8px;
     font-size: 12px;
   }
-  
+
   .btn {
     padding: 7px 14px;
     font-size: 13px;
   }
-  
+
   .custom-tag {
     flex-direction: column;
     gap: 8px;
   }
-  
+
   .add-tag-btn {
     width: 100%;
     justify-content: center;
   }
-  
+
   .shop-name {
     font-size: 13px;
   }
-  
+
   .shop-address {
     font-size: 12px;
   }
-  
+
   .dropdown li {
     padding: 10px 12px;
   }
@@ -1618,7 +1706,7 @@ button:disabled {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  width: 500px;
+  width: 50%;
   max-width: 90%;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   display: flex;

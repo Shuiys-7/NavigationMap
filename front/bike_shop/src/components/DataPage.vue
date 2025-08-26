@@ -1,40 +1,83 @@
 <template>
   <div class="data-page">
-    <div class="data-search-bar">
-      <input v-model="search" class="search-input" placeholder="搜索..." @keyup.enter="onSearch" />
-      <select v-model="filterCountry" class="filter-select">
-        <option value="">全部国家</option>
-        <option v-for="c in countryList" :key="c" :value="c">{{ c }}</option>
-      </select>
-      <select v-model="filterCity" class="filter-select">
-        <option value="">全部城市</option>
-        <option v-for="c in cityList" :key="c" :value="c">{{ c }}</option>
-      </select>
-      <select v-model="filterLevel" class="filter-select">
-        <option value="">全部评级</option>
-        <option value="A">A</option>
-        <option value="B">B</option>
-        <option value="C">C</option>
-        <option value="D">D</option>
-      </select>
-      <select v-model="filterVisited" class="filter-select">
-        <option value="">全部拜访</option>
-        <option value="1">已拜访</option>
-        <option value="0">未拜访</option>
-      </select>
-      <select v-model="filterTag" class="filter-select">
-        <option value="">全部标签</option>
-        <option v-for="tag in tagList" :key="tag.id" :value="tag.name">{{ tag.name }}</option>
-      </select>
-      <button class="search-btn" @click="onSearch">搜索</button>
-      <button 
-        class="delete-btn" 
-        :disabled="!selectedRow" 
-        :class="{active: selectedRow}" 
-        @click="onDeleteClick"
-      >删除数据</button>
-    </div>
+<!--    <div class="data-search-bar">-->
+<!--      <input v-model="search" class="search-input" placeholder="搜索..." @keyup.enter="onSearch" />-->
+<!--      <select v-model="filterCountry" class="filter-select">-->
+<!--        <option value="">全部国家</option>-->
+<!--        <option v-for="c in countryList" :key="c" :value="c">{{ c }}</option>-->
+<!--      </select>-->
+<!--      <select v-model="filterCity" class="filter-select">-->
+<!--        <option value="">全部城市</option>-->
+<!--        <option v-for="c in cityList" :key="c" :value="c">{{ c }}</option>-->
+<!--      </select>-->
+<!--      <select v-model="filterLevel" class="filter-select">-->
+<!--        <option value="">全部评级</option>-->
+<!--        <option value="A">A</option>-->
+<!--        <option value="B">B</option>-->
+<!--        <option value="C">C</option>-->
+<!--        <option value="D">D</option>-->
+<!--      </select>-->
+<!--      <select v-model="filterVisited" class="filter-select">-->
+<!--        <option value="">全部拜访</option>-->
+<!--        <option value="1">已拜访</option>-->
+<!--        <option value="0">未拜访</option>-->
+<!--      </select>-->
+<!--      <select v-model="filterTag" class="filter-select">-->
+<!--        <option value="">全部标签</option>-->
+<!--        <option v-for="tag in tagList" :key="tag.id" :value="tag.name">{{ tag.name }}</option>-->
+<!--      </select>-->
+<!--      <button class="search-btn" @click="onSearch">搜索</button>-->
+<!--      <button -->
+<!--        class="delete-btn" -->
+<!--        :disabled="!selectedRow" -->
+<!--        :class="{active: selectedRow}" -->
+<!--        @click="onDeleteClick"-->
+<!--      >删除数据</button>-->
+<!--    </div>-->
+    <div class="data-search-bar-wrapper" :class="{ mobile: isMobile }">
+      <div class="search-bar-header" v-if="isMobile" @click="toggleFilter">
+        <span>筛选条件</span>
+        <i class="fas" :class="filterCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
+      </div>
 
+      <transition name="slide-down">
+        <div v-show="!filterCollapsed || !isMobile" class="data-search-bar">
+          <!-- 原本的筛选输入框和按钮 -->
+          <input v-model="search" class="search-input" placeholder="搜索..." @keyup.enter="onSearch" />
+          <select v-model="filterCountry" class="filter-select">
+            <option value="">全部国家</option>
+            <option v-for="c in countryList" :key="c" :value="c">{{ c }}</option>
+          </select>
+          <select v-model="filterCity" class="filter-select">
+            <option value="">全部城市</option>
+            <option v-for="c in cityList" :key="c" :value="c">{{ c }}</option>
+          </select>
+          <select v-model="filterLevel" class="filter-select">
+            <option value="">全部评级</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+          </select>
+          <select v-model="filterVisited" class="filter-select">
+            <option value="">全部拜访</option>
+            <option value="1">已拜访</option>
+            <option value="0">未拜访</option>
+          </select>
+          <select v-model="filterTag" class="filter-select">
+            <option value="">全部标签</option>
+            <option v-for="tag in tagList" :key="tag.id" :value="tag.name">{{ tag.name }}</option>
+          </select>
+          <button class="search-btn" @click="onSearch">搜索</button>
+          <button
+            class="delete-btn"
+            :disabled="!selectedRow"
+            :class="{active: selectedRow}"
+            @click="onDeleteClick"
+          >删除数据</button>
+        </div>
+      </transition>
+    </div>
     <div class="data-table-wrapper">
       <table class="data-table">
         <thead>
@@ -54,7 +97,7 @@
             </template>
             <template v-else-if="col === 'tags'">
               <div class="data-tags">
-                <span v-for="(tag, index) in (row[col] && typeof row[col] === 'string' ? row[col].split(',').filter(t => t.trim()) : [])" 
+                <span v-for="(tag, index) in (row[col] && typeof row[col] === 'string' ? row[col].split(',').filter(t => t.trim()) : [])"
                       :key="index"
                       class="data-tag">
                   <i class="fas fa-tag tag-icon-small"></i>
@@ -104,7 +147,7 @@
                 </template>
                 <template v-else-if="col === 'tags'">
                   <div class="data-tags">
-                    <span v-for="(tag, index) in (detailRow[col] && typeof detailRow[col] === 'string' ? detailRow[col].split(',').filter(t => t.trim()) : [])" 
+                    <span v-for="(tag, index) in (detailRow[col] && typeof detailRow[col] === 'string' ? detailRow[col].split(',').filter(t => t.trim()) : [])"
                           :key="index"
                           class="data-tag">
                       <i class="fas fa-tag tag-icon-small"></i>
@@ -165,6 +208,7 @@ import axios from 'axios'
 
 // 移动端检测
 const isMobile = ref(false)
+
 
 // 检测设备是否为移动端
 function checkMobile() {
@@ -237,7 +281,7 @@ function onDeleteClick() {
 
 async function confirmDelete() {
   if (!selectedRow.value) return
-  
+
   try {
     const token = localStorage.getItem('token')
     await axios.post('/api/delete-shop', {
@@ -245,7 +289,7 @@ async function confirmDelete() {
     }, {
       headers: { Authorization: `Token ${token}` }
     })
-    
+
     // 删除成功后刷新数据
     fetchData()
     showDeleteDialog.value = false
@@ -379,10 +423,10 @@ onMounted(() => {
   fetchData()
   fetchTags()
   window.addEventListener('keydown', handleEscClose)
-  
+
   // 初始检测设备类型
   checkMobile()
-  
+
   // 监听窗口大小变化
   window.addEventListener('resize', checkMobile)
 })
@@ -398,11 +442,40 @@ function handleEscClose(e) {
 </script>
 
 <script>
+
+// export default {
+//   data() {
+//     return {
+//
+//       showColumns: ['id', 'name', 'country', 'city', 'lat', 'lon', 'address', 'phone', 'email', 'level', 'tags', 'image', 'visited','website'],
+//       columnLabels: {
+//         id: '编号',
+//         name: '店铺名称',
+//         country: '国家',
+//         city: '城市',
+//         lat: '经度',
+//         lon: '纬度',
+//         address: '地址',
+//         phone: '联系方式',
+//         email: '邮箱',
+//         level: '级别',
+//         tags: '标签',
+//         image: '首页图片',
+//         visited: '是否拜访',
+//         website: '网址',
+//       }
+//     }
+//   }
+// }
+
 export default {
   data() {
     return {
-
-      showColumns: ['id', 'name', 'country', 'city', 'lat', 'lon', 'address', 'phone', 'email', 'level', 'tags', 'image', 'visited','website'],
+      // 原有列配置
+      showColumns: [
+        'id', 'name', 'country', 'city', 'lat', 'lon', 'address',
+        'phone', 'email', 'level', 'tags', 'image', 'visited', 'website', 'shop_note'
+      ],
       columnLabels: {
         id: '编号',
         name: '店铺名称',
@@ -418,10 +491,35 @@ export default {
         image: '首页图片',
         visited: '是否拜访',
         website: '网址',
+        shop_note: '备注',
+      },
+
+      // 新增响应式相关数据
+      isMobile: window.innerWidth <= 768, // 是否小屏
+      filterCollapsed: false, // 筛选栏收起状态
+    };
+  },
+  mounted() {
+    // 监听窗口变化
+    window.addEventListener("resize", this.checkMobile);
+  },
+  beforeUnmount() {
+    window.removeEventListener("resize", this.checkMobile);
+  },
+  methods: {
+    checkMobile() {
+      this.isMobile = window.innerWidth <= 768;
+      // 回到大屏时自动展开
+      if (!this.isMobile) {
+        this.filterCollapsed = false;
       }
+    },
+    toggleFilter() {
+      this.filterCollapsed = !this.filterCollapsed;
     }
   }
-}
+};
+
 </script>
 
 <style scoped>
@@ -980,9 +1078,11 @@ export default {
   align-items: center;
   justify-content: center;
 }
+
 .detail-dialog {
   background: #fff;
   border-radius: 20px;
+  width: 50%;
   box-shadow: 0 15px 50px rgba(22,120,255,0.2);
   padding: 40px 48px 32px 48px;
   min-width: 700px;
@@ -1178,7 +1278,7 @@ export default {
     padding: 15px;
     gap: 12px;
   }
-  
+
   .data-search-bar {
     display: flex;
     flex-wrap: wrap;
@@ -1194,7 +1294,7 @@ export default {
     padding: 10px 12px;
     order: -1; /* 搜索框放在最前面 */
   }
-  
+
   .filter-select {
     width: calc(50% - 4px);
     font-size: 16px; /* 防止iOS缩放 */
@@ -1203,7 +1303,7 @@ export default {
     background-position: right 8px center;
     padding-right: 30px;
   }
-  
+
   .search-btn,
   .delete-btn {
     width: calc(50% - 4px);
@@ -1211,7 +1311,7 @@ export default {
     padding: 10px 8px;
     margin-top: 8px;
   }
-  
+
   /* 表格容器样式优化 */
   .data-table-wrapper {
     padding: 12px;
@@ -1220,89 +1320,89 @@ export default {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch; /* 提升iOS滚动体验 */
   }
-  
+
   /* 表格样式优化 */
-  .data-table th, 
+  .data-table th,
   .data-table td {
     padding: 10px 12px;
     font-size: 0.95rem;
     height: 40px;
     line-height: 1.3;
   }
-  
+
   /* 图片预览样式优化 */
   .img-preview-big {
     max-width: 90vw;
     max-height: 80vh;
   }
-  
+
   /* 详情弹窗样式优化 */
   .detail-dialog {
     min-width: unset;
-    width: 90vw;
+    width: 50%;
     padding: 20px;
     max-height: 80vh;
     overflow-y: auto;
   }
-  
+
   .detail-dialog-flex {
     flex-direction: column;
     gap: 20px;
   }
-  
+
   .detail-img-box {
     width: 100%;
     max-width: 100%;
     justify-content: center;
     padding: 12px;
   }
-  
+
   .detail-img-big {
     max-width: 100%;
     margin-left: 0;
   }
-  
+
   .detail-dialog-content {
     width: 100%;
     padding-right: 0;
     font-size: 1rem;
   }
-  
+
   .detail-row {
     padding: 10px 12px;
     margin-bottom: 10px;
   }
-  
+
   .detail-label {
     min-width: 100px;
     font-size: 0.95rem;
   }
-  
+
   .detail-value {
     font-size: 0.95rem;
   }
-  
+
   /* 删除弹窗样式优化 */
   .delete-dialog {
     padding: 20px;
     width: 90vw;
   }
-  
+
   .delete-dialog-title {
     font-size: 1.3rem;
     margin-bottom: 15px;
   }
-  
+
   .delete-dialog-msg {
     font-size: 1rem;
     margin-bottom: 20px;
   }
-  
+
   .delete-dialog-btn {
     padding: 10px 16px;
     font-size: 1rem;
   }
-  
+
   /* 分页控件样式优化 */
   .data-pagination {
     flex-wrap: wrap;
@@ -1312,33 +1412,33 @@ export default {
     justify-content: center;
     text-align: center;
   }
-  
+
   .data-pagination button,
   .data-pagination input {
     font-size: 16px; /* 防止iOS缩放 */
     padding: 8px 12px;
   }
-  
+
   .data-pagination input[type="number"] {
     width: 60px;
   }
-  
+
   .data-pagination select {
     font-size: 16px; /* 防止iOS缩放 */
     padding: 8px 12px;
     width: 70px;
   }
-  
+
   .page-input {
     width: 50px;
   }
-  
+
   /* 标签样式优化 */
   .data-tag {
     padding: 2px 6px;
     font-size: 0.75rem;
   }
-  
+
   /* 访问状态标签样式优化 */
   .visited-tag {
     min-width: 60px;
@@ -1352,27 +1452,27 @@ export default {
   .data-page {
     padding: 10px;
   }
-  
+
   .filter-select {
     width: 100%;
     margin-bottom: 4px;
   }
-  
+
   .search-btn,
   .delete-btn {
     width: 100%;
   }
-  
-  .data-table th, 
+
+  .data-table th,
   .data-table td {
     padding: 8px 10px;
     font-size: 0.9rem;
   }
-  
+
   .detail-dialog-title {
     font-size: 1.2rem;
   }
-  
+
   .detail-dialog-close {
     top: 10px;
     right: 10px;
@@ -1381,4 +1481,52 @@ export default {
     font-size: 1.5rem;
   }
 }
+
+/* 筛选栏容器 */
+.data-search-bar-wrapper {
+  margin-bottom: 10px;
+}
+
+/* 手机模式下的头部 */
+.data-search-bar-wrapper.mobile .search-bar-header {
+  background: #f5f5f5;
+  padding: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 动画效果 */
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.3s ease;
+}
+.slide-down-enter-from,
+.slide-down-leave-to {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+/* 手机下筛选项改为竖排 */
+@media screen and (max-width: 768px) {
+  .data-search-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #ddd;
+  }
+  .search-input,
+  .filter-select,
+  .search-btn,
+  .delete-btn {
+    width: 100%;
+  }
+}
+
+
 </style>

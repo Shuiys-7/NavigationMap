@@ -9,7 +9,8 @@
         @click="onEditShopClick"
       >编辑商店</button>
     </div>
-    <table class="visited-table">
+    <div class="table-container">
+      <table class="visited-table">
       <thead>
         <tr>
           <th>商店名</th>
@@ -47,7 +48,8 @@
           <td colspan="7">暂无拜访过的商店</td>
         </tr>
       </tbody>
-    </table>
+      </table>
+    </div>
     <!-- 分页控件 -->
     <div class="edit-pagination" style="margin-top:16px;display:flex;align-items:center;gap:16px;justify-content:center;">
       <span>每页</span>
@@ -141,6 +143,10 @@
               <span class="file-btn">选择图片文件</span>
             </label>
             <span v-if="fileName" class="file-name">已选：{{ fileName }}</span>
+          </div>
+          <div class="form-row">
+            <label>备注：</label>
+            <textarea v-model="editForm.shop_note" class="shop-note-textarea" placeholder="请输入店铺备注信息..."></textarea>
           </div>
           <div class="form-row latlng-checkbox-row">
             <label style="margin-left:auto;"><input type="checkbox" v-model="editLatLng" /> 允许修改经纬度</label>
@@ -299,7 +305,7 @@ async function updateShop() {
   // 将当前标签数组转换为逗号分隔的字符串
   editForm.value.tags = currentTags.value.join(',')
   
-  for (const k of ['name','country','city','address','phone','email','tags']) {
+  for (const k of ['name','country','city','address','phone','email','tags','shop_note']) {
     formData.append(k, editForm.value[k] || '')
   }
   if (file.value) formData.append('image', file.value)
@@ -684,18 +690,52 @@ onUnmounted(() => {
   cursor: not-allowed !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
 }
+.table-container {
+  width: 100%;
+  overflow: auto;
+  max-height: calc(100vh - 300px);
+  min-height: 300px;
+  position: relative;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  /* 添加滚动条样式 */
+  scrollbar-width: thin;
+  scrollbar-color: #d0e0ff #f8fafd;
+}
+
+/* 自定义滚动条样式 */
+.table-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f8fafd;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background-color: #d0e0ff;
+  border-radius: 4px;
+  border: 2px solid #f8fafd;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background-color: #1677ff;
+}
+
 .visited-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   background: #fff;
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   table-layout: auto;
   min-width: max-content;
   transition: all 0.3s ease;
-  margin-bottom: 20px;
+  margin: 0;
 }
 
 .visited-table th, .visited-table td {
@@ -705,7 +745,8 @@ onUnmounted(() => {
   transition: background 0.3s ease;
   white-space: nowrap;
   height: 52px;
-  line-height: 52px;
+  line-height: 1.5;
+  vertical-align: middle;
 }
 
 .visited-table th {
@@ -718,6 +759,10 @@ onUnmounted(() => {
   text-align: center;
   text-transform: uppercase;
   font-size: 0.95rem;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .visited-table td {
@@ -835,6 +880,31 @@ onUnmounted(() => {
 .edit-dialog-content::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(to bottom, #1677ff, #0056d6);
 }
+
+/* 响应式样式 */
+@media (max-width: 768px) {
+  .table-container {
+    max-height: calc(100vh - 250px);
+    min-height: 250px;
+  }
+  
+  .visited-table th, .visited-table td {
+    padding: 12px 16px;
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .table-container {
+    max-height: calc(100vh - 200px);
+    min-height: 200px;
+  }
+  
+  .visited-table th, .visited-table td {
+    padding: 10px 12px;
+    font-size: 0.9rem;
+  }
+}
 .edit-dialog-content .form-row {
   display: flex;
   align-items: flex-start;
@@ -949,6 +1019,18 @@ onUnmounted(() => {
   color: #333;
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.shop-note-textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  resize: vertical;
+  box-sizing: border-box;
+  font-family: inherit;
 }
 .file-name {
   color: #1765d8;

@@ -50,9 +50,17 @@
 
         <!-- 新建店铺按钮 -->
         <div class="add-shop-section">
-          <button @click="toggleAddShopMode" class="add-shop-btn" :class="{ active: addShopMode }">
-            {{ addShopMode ? '取消新建' : '新建店铺' }}
-          </button>
+          <div class="add-shop-buttons">
+            <button @click="toggleAddShopMode" class="add-shop-btn" :class="{ active: addShopMode }">
+              {{ addShopMode ? '取消新建' : '新建店铺' }}
+            </button>
+            <button @click="createShopWithGPS" class="gps-shop-btn">
+               GPS新建店铺
+            </button>
+            <button @click="toggleLocationTracking" class="location-tracking-btn" :class="{ active: isLocationTrackingActive }">
+              {{ isLocationTrackingActive ? '停止GPS跟踪' : 'GPS实时定位' }}
+            </button>
+          </div>
           <div v-if="addShopMode" class="add-shop-hint">
             点击地图上的位置来添加新店铺
           </div>
@@ -243,6 +251,10 @@
               </label>
             </div>
           </div>
+          <div class="form-group">
+            <label>备注：</label>
+            <textarea v-model="newShop.shop_note" placeholder="请输入店铺备注信息..." class="shop-note-textarea"></textarea>
+          </div>
         </div>
         <div class="modal-footer">
           <button @click="closeAddShopModal" class="cancel-btn">取消</button>
@@ -310,7 +322,7 @@ const addCustomTag = async () => {
 
     const newTag = res.data.tag  // 取正确的标签对象
     allTags.value.push(newTag)   // 添加到所有标签列表
-    newShop.value.tags.push(newTag.name)  // 添加到选中标签数组
+    newShop.value.tags.push(newTag.id)  // 添加到选中标签数组（使用id而不是name）
     customTag.value = ''  // 清空输入框
 
   } catch (error) {
@@ -348,7 +360,8 @@ const newShop = ref({
   lat: 0,
   lon: 0,
   visit: false,
-  level: ''
+  level: '',
+  shop_note: ''
 })
 const newTag = ref('')
 
@@ -358,6 +371,11 @@ const newAddress = ref('')
 const routePoints = ref([])
 const routeInfo = ref(null)
 const routeEntity = ref(null) // 用于存储路径实体
+
+// GPS定位跟踪相关
+const isLocationTrackingActive = ref(false)
+const locationWatchId = ref(null)
+const currentLocationEntity = ref(null) // 用于存储当前位置实体
 
 // 详情弹窗相关
 const showPointPanel = ref(false)
@@ -441,6 +459,7 @@ function applyFilters() {
 
   filteredGeoData.value = filtered
   updateMapEntities()
+  autoRotate = false // 停止地球旋转
 }
 
 function clearFilters() {
@@ -453,6 +472,7 @@ function clearFilters() {
   }
   filteredGeoData.value = allGeoData.value
   updateMapEntities()
+  autoRotate = false // 停止地球旋转
 }
 
 function updateMapEntities() {
@@ -533,17 +553,22 @@ function updateMapEntities() {
 // 筛选面板收缩相关函数
 function toggleFilterPanel() {
   isFilterPanelCollapsed.value = !isFilterPanelCollapsed.value
+  autoRotate = false // 停止地球旋转
 }
 
 // 新建店铺相关函数
 function toggleAddShopMode() {
   addShopMode.value = !addShopMode.value
+  autoRotate = false // 停止地球旋转
   if (!addShopMode.value) {
     showAddShopModal.value = false
   }
 }
 
 function handleMapClick(event) {
+  // 停止地球旋转
+  autoRotate = false
+
   if (!addShopMode.value) return
 
   const pickedPosition = viewer.camera.pickEllipsoid(event.position, viewer.scene.globe.ellipsoid)
@@ -610,46 +635,153 @@ async function saveNewShop() {
     return
   }
 
-  try {
-    const token = localStorage.getItem('token')
-    const shopData = {
-      name: newShop.value.name,
-      country: newShop.value.country,
-      city: newShop.value.city,
-      address: newShop.value.address,
-      phone: newShop.value.phone,
-      email: newShop.value.email,
-      tags: newShop.value.tags,
-      lat: newShop.value.lat,
-      lon: newShop.value.lon,
-      visited: newShop.value.visit,
-      level: newShop.value.level
-    }
-    // console.log(shopData)
-    const response = await axios.post('/api/shop_create', shopData, {
-      headers: { Authorization: `Token ${token}` }
-    })
+  // 准备商店数据
+  const shopData = {
+    name: newShop.value.name,
+    country: newShop.value.country,
+    city: newShop.value.city,
+    address: newShop.value.address,
+    phone: newShop.value.phone,
+    email: newShop.value.email,
+    tags: newShop.value.tags,
+    lat: newShop.value.lat,
+    lon: newShop.value.lon,
+    visited: newShop.value.visit,
+    level: newShop.value.level,
+    shop_note: newShop.value.shop_note
+  }
 
-    if (response.data.success) {
-      // 重新加载数据
-      allGeoData.value = await fetchGeoData()
-      filteredGeoData.value = allGeoData.value
-      updateMapEntities()
-      closeAddShopModal()
-      addShopMode.value = false
-      alert('店铺创建成功！')
-    } else {
-      alert('创建失败：' + response.data.message)
+  // 添加重试机制
+  const maxRetries = 3 // 最大重试次数
+  let retryCount = 0
+  let success = false
+
+  while (retryCount < maxRetries && !success) {
+    try {
+      const token = localStorage.getItem('token')
+      // 显示加载状态
+      // const loadingMessage = retryCount > 0 ? `正在重试(${retryCount}/${maxRetries})...` : '正在创建店铺...'
+      // alert(loadingMessage)
+
+      const response = await axios.post('/api/shop_create', shopData, {
+        headers: { Authorization: `Token ${token}` },
+        // 添加超时设置
+        timeout: 10000 // 10秒超时
+      })
+
+      if (response.data.success) {
+        // 重新加载数据
+        allGeoData.value = await fetchGeoData()
+        filteredGeoData.value = allGeoData.value
+        updateMapEntities()
+        closeAddShopModal()
+        addShopMode.value = false
+        alert('店铺创建成功！')
+        success = true
+      } else {
+        throw new Error(response.data.message || '创建失败')
+      }
+    } catch (error) {
+      retryCount++
+      console.error(`创建店铺失败 (尝试 ${retryCount}/${maxRetries}):`, error)
+
+      // 检查是否需要继续重试
+      if (retryCount >= maxRetries) {
+        alert(`创建店铺失败: ${error.message || '服务器错误'}`)
+      } else {
+        // 等待一段时间后重试 (使用指数退避策略)
+        const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 8000) // 最多等待8秒
+        await new Promise(resolve => setTimeout(resolve, retryDelay))
+      }
     }
-  } catch (error) {
-    console.error('创建店铺失败:', error)
-    alert('创建店铺失败')
+  }
+}
+
+// GPS新建店铺相关函数
+async function createShopWithGPS() {
+  if (!navigator.geolocation) {
+    alert('您的浏览器不支持地理定位')
+    return
+  }
+
+  // 显示加载状态
+  // alert('正在获取GPS位置...')
+
+  // 使用Promise包装geolocation API
+  const getPosition = () => {
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,  // 高精度定位
+        timeout: 10000,            // 10秒超时
+        maximumAge: 0              // 不使用缓存
+      })
+    })
+  }
+
+  // 添加重试机制
+  const maxRetries = 3 // 最大重试次数
+  let retryCount = 0
+
+  while (retryCount < maxRetries) {
+    try {
+      // 获取GPS位置
+      const position = await getPosition()
+      const lat = position.coords.latitude
+      const lon = position.coords.longitude
+
+      try {
+        // 获取地址信息
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
+          { headers: { 'Accept-Language': 'zh-CN,zh;q=0.9' } }  // 请求中文结果
+        )
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data = await response.json()
+
+        // 填充新店铺信息
+        newShop.value.lat = lat
+        newShop.value.lon = lon
+        newShop.value.address = data.address?.road
+          ? `${data.address.road}${data.address.house_number ? ' ' + data.address.house_number : ''}`.split(',')[0]
+          : (data.display_name || '').split(',')[0];
+        const cityMatch = (data.display_name || '').match(/,\s*([^,]+),\s*[^,]+,\s*[^,]+$/);
+        newShop.value.city = cityMatch ? cityMatch[1].trim() : '';
+        newShop.value.country = data.address?.country || ''
+      } catch (error) {
+        console.error('获取地址信息失败:', error)
+        // 即使获取地址失败，也填充经纬度
+        newShop.value.lat = lat
+        newShop.value.lon = lon
+      }
+
+      // 打开新建店铺弹窗
+      showAddShopModal.value = true
+      return // 成功获取位置，退出函数
+
+    } catch (error) {
+      retryCount++
+      console.error(`获取位置失败 (尝试 ${retryCount}/${maxRetries}):`, error)
+
+      if (retryCount >= maxRetries) {
+        alert(`无法获取当前位置: ${error.message || '请检查GPS权限'}`)
+      } else {
+        // 等待一段时间后重试 (使用指数退避策略)
+        const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 5000) // 最多等待5秒
+        alert(`获取位置失败，${retryDelay/1000}秒后重试...`)
+        await new Promise(resolve => setTimeout(resolve, retryDelay))
+      }
+    }
   }
 }
 
 // 导航相关函数
 function toggleNavigation() {
   showNavigation.value = !showNavigation.value
+  autoRotate = false // 停止地球旋转
 }
 
 async function addRoutePoint() {
@@ -668,6 +800,7 @@ async function addRoutePoint() {
       }
       routePoints.value.push(point)
       newAddress.value = ''
+      autoRotate = false // 停止地球旋转
     } else {
       alert('未找到该地址')
     }
@@ -679,6 +812,7 @@ async function addRoutePoint() {
 
 function removeRoutePoint(index) {
   routePoints.value.splice(index, 1)
+  autoRotate = false // 停止地球旋转
 }
 
 function movePoint(index, direction) {
@@ -686,10 +820,12 @@ function movePoint(index, direction) {
     const temp = routePoints.value[index]
     routePoints.value[index] = routePoints.value[index - 1]
     routePoints.value[index - 1] = temp
+    autoRotate = false // 停止地球旋转
   } else if (direction === 'down' && index < routePoints.value.length - 1) {
     const temp = routePoints.value[index]
     routePoints.value[index] = routePoints.value[index + 1]
     routePoints.value[index + 1] = temp
+    autoRotate = false // 停止地球旋转
   }
 }
 
@@ -709,6 +845,8 @@ function clearRoutePoints() {
       viewer.entities.remove(entity)
     }
   })
+
+  autoRotate = false // 停止地球旋转
 }
 
 async function calculateRoute() {
@@ -731,6 +869,7 @@ async function calculateRoute() {
 
       // 绘制路径到地图上
       drawRouteOnMap(route.geometry.coordinates)
+      autoRotate = false // 停止地球旋转
     } else {
       alert('路径计算失败')
     }
@@ -751,6 +890,7 @@ function openGoogleMaps() {
       url += `&waypoints=${encodeURIComponent(waypoints)}`
     }
     window.open(url, '_blank')
+    autoRotate = false // 停止地球旋转
   }
 }
 
@@ -760,6 +900,19 @@ function getCurrentLocation() {
       (position) => {
         const lat = position.coords.latitude
         const lon = position.coords.longitude
+
+        autoRotate = false // 停止地球旋转
+
+        // 更新地图视角到当前位置
+        viewer.camera.flyTo({
+          destination: Cesium.Cartesian3.fromDegrees(lon, lat, 1000),
+          orientation: {
+            heading: 0,
+            pitch: -Cesium.Math.PI_OVER_TWO,
+            roll: 0
+          },
+          duration: 2
+        })
 
         // 获取地址信息
         fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
@@ -792,15 +945,150 @@ function getCurrentLocation() {
   }
 }
 
+// GPS实时定位跟踪相关函数
+function toggleLocationTracking() {
+  autoRotate = false // 停止地球旋转
+  
+  if (isLocationTrackingActive.value) {
+    // 停止跟踪
+    if (locationWatchId.value !== null) {
+      navigator.geolocation.clearWatch(locationWatchId.value)
+      locationWatchId.value = null
+    }
+    
+    // 移除当前位置标记
+    if (currentLocationEntity.value) {
+      viewer.entities.remove(currentLocationEntity.value)
+      currentLocationEntity.value = null
+    }
+    
+    isLocationTrackingActive.value = false
+  } else {
+    // 开始跟踪
+    if (!navigator.geolocation) {
+      alert('您的浏览器不支持地理定位')
+      return
+    }
+    
+    isLocationTrackingActive.value = true
+    
+    // 开始监听位置变化
+    locationWatchId.value = navigator.geolocation.watchPosition(
+      (position) => {
+        updateCurrentLocationMarker(position.coords.latitude, position.coords.longitude, position.coords.accuracy)
+      },
+      (error) => {
+        console.error('位置跟踪失败:', error)
+        alert(`位置跟踪失败: ${error.message}`)
+        isLocationTrackingActive.value = false
+        locationWatchId.value = null
+      },
+      {
+        enableHighAccuracy: true,  // 高精度定位
+        timeout: 10000,            // 10秒超时
+        maximumAge: 0              // 不使用缓存
+      }
+    )
+  }
+}
+
+// 用于控制是否自动更新视角的标志
+const autoUpdateCamera = ref(true)
+
+// 更新当前位置标记
+function updateCurrentLocationMarker(lat, lon, accuracy) {
+  // 如果已有标记，先移除
+  if (currentLocationEntity.value) {
+    viewer.entities.remove(currentLocationEntity.value)
+  }
+  
+  // 创建新的位置标记
+  currentLocationEntity.value = viewer.entities.add({
+    position: Cesium.Cartesian3.fromDegrees(lon, lat),
+    billboard: {
+      image: createLocationIcon(),
+      verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+      scale: 0.5,
+      disableDepthTestDistance: Number.POSITIVE_INFINITY
+    },
+    ellipse: {
+      semiMinorAxis: accuracy,
+      semiMajorAxis: accuracy,
+      material: new Cesium.ColorMaterialProperty(
+        Cesium.Color.BLUE.withAlpha(0.3)
+      ),
+      outline: true,
+      outlineColor: Cesium.Color.BLUE,
+      outlineWidth: 2,
+      height: 0
+    },
+    label: {
+      text: '当前位置',
+      font: '14px sans-serif',
+      fillColor: Cesium.Color.WHITE,
+      outlineColor: Cesium.Color.BLACK,
+      outlineWidth: 2,
+      style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+      verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+      pixelOffset: new Cesium.Cartesian2(0, -36),
+      disableDepthTestDistance: Number.POSITIVE_INFINITY
+    }
+  })
+  
+  // 只有在自动更新视角开启时才移动相机
+  if (isLocationTrackingActive.value && autoUpdateCamera.value) {
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(lon, lat, 1000),
+      orientation: {
+        heading: 0,
+        pitch: -Cesium.Math.PI_OVER_TWO,
+        roll: 0
+      },
+      duration: 2
+    })
+  }
+}
+
+// 创建位置图标
+function createLocationIcon() {
+  const canvas = document.createElement('canvas')
+  canvas.width = 48
+  canvas.height = 48
+  const context = canvas.getContext('2d')
+  
+  // 绘制外圆
+  context.beginPath()
+  context.arc(24, 24, 12, 0, 2 * Math.PI, false)
+  context.fillStyle = '#4285F4'
+  context.fill()
+  
+  // 绘制内圆
+  context.beginPath()
+  context.arc(24, 24, 6, 0, 2 * Math.PI, false)
+  context.fillStyle = '#FFFFFF'
+  context.fill()
+  
+  // 绘制脉冲效果
+  context.beginPath()
+  context.arc(24, 24, 20, 0, 2 * Math.PI, false)
+  context.strokeStyle = '#4285F4'
+  context.lineWidth = 2
+  context.stroke()
+  
+  return canvas
+}
+
 // 详情弹窗相关函数
 function showPointDetails(point) {
   selectedPoint.value = point
   showPointPanel.value = true
+  autoRotate = false // 停止地球旋转
 }
 
 function closePointPanel() {
   showPointPanel.value = false
   selectedPoint.value = {}
+  autoRotate = false // 停止地球旋转
 }
 
 function addToRoute(point) {
@@ -810,6 +1098,7 @@ function addToRoute(point) {
     address: point.address || `${point.lat}, ${point.lon}`
   }
   routePoints.value.push(routePoint)
+  autoRotate = false // 停止地球旋转
   closePointPanel()
 }
 
@@ -891,6 +1180,8 @@ function drawRouteOnMap(coordinates) {
 
   // 调整相机视角以显示整个路径
   viewer.zoomTo(routeEntity.value)
+
+  autoRotate = false // 停止地球旋转
 }
 
 // 清除路径绘制
@@ -907,6 +1198,8 @@ function clearRouteDrawing() {
       viewer.entities.remove(entity)
     }
   })
+
+  autoRotate = false // 停止地球旋转
 }
 
 function createClusterIcon(count) {
@@ -926,6 +1219,32 @@ function createClusterIcon(count) {
   ctx.textBaseline = 'middle'
   ctx.fillText(count, size/2, size/2)
   return canvas.toDataURL()
+}
+
+// 用于在用户停止交互一段时间后重新启用自动视角更新的定时器
+let cameraUpdateTimer = null
+
+// 监听用户交互事件，停止地球旋转并禁用自动视角更新
+function stopRotation() { 
+  autoRotate = false 
+  // 当用户开始交互时，禁用自动视角更新
+  if (isLocationTrackingActive.value) {
+    autoUpdateCamera.value = false
+  }
+}
+
+// 用户停止交互后恢复自动视角更新
+function resumeCameraUpdate() {
+  if (cameraUpdateTimer) {
+    clearTimeout(cameraUpdateTimer)
+  }
+  
+  // 5秒后恢复自动视角更新
+  cameraUpdateTimer = setTimeout(() => {
+    if (isLocationTrackingActive.value) {
+      autoUpdateCamera.value = true
+    }
+  }, 5000)
 }
 
 onMounted(async () => {
@@ -989,6 +1308,9 @@ onMounted(async () => {
 
   // 监听地图点击事件
   viewer.screenSpaceEventHandler.setInputAction((event) => {
+    // 停止地球旋转
+    autoRotate = false
+
     const pickedObject = viewer.scene.pick(event.position)
     if (pickedObject && pickedObject.id && pickedObject.id.click) {
       // 点击了实体
@@ -1011,10 +1333,33 @@ onMounted(async () => {
 
   // 鼠标悬停/移出事件
   cesiumContainer.value.addEventListener('mouseenter', () => { autoRotate = false })
-  cesiumContainer.value.addEventListener('mouseleave', () => { autoRotate = true })
+
+  // 添加各种用户交互事件监听
+  viewer.screenSpaceEventHandler.setInputAction(stopRotation, Cesium.ScreenSpaceEventType.LEFT_DOWN)
+  viewer.screenSpaceEventHandler.setInputAction(stopRotation, Cesium.ScreenSpaceEventType.WHEEL)
+  viewer.screenSpaceEventHandler.setInputAction(stopRotation, Cesium.ScreenSpaceEventType.PINCH_START)
+  
+  // 监听交互结束事件
+  viewer.screenSpaceEventHandler.setInputAction(resumeCameraUpdate, Cesium.ScreenSpaceEventType.LEFT_UP)
+  viewer.screenSpaceEventHandler.setInputAction(resumeCameraUpdate, Cesium.ScreenSpaceEventType.WHEEL)
+  viewer.screenSpaceEventHandler.setInputAction(resumeCameraUpdate, Cesium.ScreenSpaceEventType.PINCH_END)
+
+  // 监听键盘事件
+  document.addEventListener('keydown', stopRotation)
+  document.addEventListener('keyup', resumeCameraUpdate)
 })
 
 onBeforeUnmount(() => {
+  // 清理键盘事件监听器
+  document.removeEventListener('keydown', stopRotation)
+  document.removeEventListener('keyup', resumeCameraUpdate)
+  
+  // 清理定时器
+  if (cameraUpdateTimer) {
+    clearTimeout(cameraUpdateTimer)
+    cameraUpdateTimer = null
+  }
+  
   if (viewer) {
     viewer.destroy()
     viewer = null
@@ -1022,6 +1367,12 @@ onBeforeUnmount(() => {
   if (rotateHandler) {
     clearInterval(rotateHandler)
     rotateHandler = null
+  }
+  
+  // 清理GPS跟踪
+  if (locationWatchId.value !== null) {
+    navigator.geolocation.clearWatch(locationWatchId.value)
+    locationWatchId.value = null
   }
 })
 </script>
@@ -1164,8 +1515,16 @@ label {
   z-index: 1000;
 }
 
-.add-shop-btn {
-  padding: 12px 20px;
+.add-shop-buttons {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.add-shop-btn, .gps-shop-btn, .location-tracking-btn {
+  flex: 1;
+  padding: 12px 10px;
   background: #52c41a;
   color: white;
   border: none;
@@ -1173,14 +1532,21 @@ label {
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.add-shop-btn.active {
+.add-shop-btn.active, .location-tracking-btn.active {
   background: #ff4d4f;
 }
 
-.add-shop-btn:hover {
+.add-shop-btn:hover, .gps-shop-btn:hover {
   opacity: 0.9;
+}
+
+.gps-icon {
+  margin-right: 4px;
 }
 
 .add-shop-hint {
@@ -1415,6 +1781,8 @@ label {
 .add-shop-section {
   margin-bottom: 12px;
 }
+
+/* 样式已存在，此处删除重复定义 */
 
 .nav-toggle-btn {
   width: 100%;
@@ -1675,6 +2043,18 @@ label {
   margin: 0;
   font-size: 14px;
   color: #666;
+}
+
+.shop-note-textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  resize: vertical;
+  box-sizing: border-box;
+  font-family: inherit;
 }
 
 .modal-footer {

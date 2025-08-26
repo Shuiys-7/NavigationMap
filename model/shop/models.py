@@ -23,7 +23,9 @@ class Shop(models.Model):
     level = models.CharField(max_length=1, choices=LEVEL_CHOICES)
     tags = models.CharField(max_length=255)
     image = models.ImageField(upload_to='shop_images/', null=True, blank=True)
+    shop_note = models.TextField(null=True, blank=True)
     visited = models.BooleanField(default=False)
+
 
     def __str__(self):
         return self.name
