@@ -275,6 +275,8 @@ import * as Cesium from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import axios from 'axios'
 
+Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIyNjRkOTM1OS1hZGIxLTQ4MWUtYmJkOC1jMTdkY2ZhMGFiYWEiLCJpZCI6MzQxNzI0LCJpYXQiOjE3NTgwMDc1MDh9.H1rB5v2Rn34uYXGTkdoSG3aD05itFceDmL0Xi7tBddc"
+
 const cesiumContainer = ref(null)
 let viewer = null
 let autoRotate = true
@@ -948,20 +950,20 @@ function getCurrentLocation() {
 // GPS实时定位跟踪相关函数
 function toggleLocationTracking() {
   autoRotate = false // 停止地球旋转
-  
+
   if (isLocationTrackingActive.value) {
     // 停止跟踪
     if (locationWatchId.value !== null) {
       navigator.geolocation.clearWatch(locationWatchId.value)
       locationWatchId.value = null
     }
-    
+
     // 移除当前位置标记
     if (currentLocationEntity.value) {
       viewer.entities.remove(currentLocationEntity.value)
       currentLocationEntity.value = null
     }
-    
+
     isLocationTrackingActive.value = false
   } else {
     // 开始跟踪
@@ -969,9 +971,9 @@ function toggleLocationTracking() {
       alert('您的浏览器不支持地理定位')
       return
     }
-    
+
     isLocationTrackingActive.value = true
-    
+
     // 开始监听位置变化
     locationWatchId.value = navigator.geolocation.watchPosition(
       (position) => {
@@ -1001,7 +1003,7 @@ function updateCurrentLocationMarker(lat, lon, accuracy) {
   if (currentLocationEntity.value) {
     viewer.entities.remove(currentLocationEntity.value)
   }
-  
+
   // 创建新的位置标记
   currentLocationEntity.value = viewer.entities.add({
     position: Cesium.Cartesian3.fromDegrees(lon, lat),
@@ -1034,7 +1036,7 @@ function updateCurrentLocationMarker(lat, lon, accuracy) {
       disableDepthTestDistance: Number.POSITIVE_INFINITY
     }
   })
-  
+
   // 只有在自动更新视角开启时才移动相机
   if (isLocationTrackingActive.value && autoUpdateCamera.value) {
     viewer.camera.flyTo({
@@ -1055,26 +1057,26 @@ function createLocationIcon() {
   canvas.width = 48
   canvas.height = 48
   const context = canvas.getContext('2d')
-  
+
   // 绘制外圆
   context.beginPath()
   context.arc(24, 24, 12, 0, 2 * Math.PI, false)
   context.fillStyle = '#4285F4'
   context.fill()
-  
+
   // 绘制内圆
   context.beginPath()
   context.arc(24, 24, 6, 0, 2 * Math.PI, false)
   context.fillStyle = '#FFFFFF'
   context.fill()
-  
+
   // 绘制脉冲效果
   context.beginPath()
   context.arc(24, 24, 20, 0, 2 * Math.PI, false)
   context.strokeStyle = '#4285F4'
   context.lineWidth = 2
   context.stroke()
-  
+
   return canvas
 }
 
@@ -1225,8 +1227,8 @@ function createClusterIcon(count) {
 let cameraUpdateTimer = null
 
 // 监听用户交互事件，停止地球旋转并禁用自动视角更新
-function stopRotation() { 
-  autoRotate = false 
+function stopRotation() {
+  autoRotate = false
   // 当用户开始交互时，禁用自动视角更新
   if (isLocationTrackingActive.value) {
     autoUpdateCamera.value = false
@@ -1238,7 +1240,7 @@ function resumeCameraUpdate() {
   if (cameraUpdateTimer) {
     clearTimeout(cameraUpdateTimer)
   }
-  
+
   // 5秒后恢复自动视角更新
   cameraUpdateTimer = setTimeout(() => {
     if (isLocationTrackingActive.value) {
@@ -1338,7 +1340,7 @@ onMounted(async () => {
   viewer.screenSpaceEventHandler.setInputAction(stopRotation, Cesium.ScreenSpaceEventType.LEFT_DOWN)
   viewer.screenSpaceEventHandler.setInputAction(stopRotation, Cesium.ScreenSpaceEventType.WHEEL)
   viewer.screenSpaceEventHandler.setInputAction(stopRotation, Cesium.ScreenSpaceEventType.PINCH_START)
-  
+
   // 监听交互结束事件
   viewer.screenSpaceEventHandler.setInputAction(resumeCameraUpdate, Cesium.ScreenSpaceEventType.LEFT_UP)
   viewer.screenSpaceEventHandler.setInputAction(resumeCameraUpdate, Cesium.ScreenSpaceEventType.WHEEL)
@@ -1353,13 +1355,13 @@ onBeforeUnmount(() => {
   // 清理键盘事件监听器
   document.removeEventListener('keydown', stopRotation)
   document.removeEventListener('keyup', resumeCameraUpdate)
-  
+
   // 清理定时器
   if (cameraUpdateTimer) {
     clearTimeout(cameraUpdateTimer)
     cameraUpdateTimer = null
   }
-  
+
   if (viewer) {
     viewer.destroy()
     viewer = null
@@ -1368,7 +1370,7 @@ onBeforeUnmount(() => {
     clearInterval(rotateHandler)
     rotateHandler = null
   }
-  
+
   // 清理GPS跟踪
   if (locationWatchId.value !== null) {
     navigator.geolocation.clearWatch(locationWatchId.value)
